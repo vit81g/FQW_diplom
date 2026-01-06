@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple, List
 
 import pandas as pd
+from urllib.parse import unquote
 
 
 DROP_COLS = {"ClusterID", "ClusterName", "TenantID", "TenantName"}
@@ -43,6 +44,13 @@ PAN_TRAFFIC_SIGNATURE = {
     "DeviceVendor": "Palo Alto Networks",
 }
 
+# Tokens that do not represent a real user identity in exports and must NOT be mapped to userXXX
+INVALID_USER_TOKENS = {
+    "", "-", "—", "–",
+    "null", "(null)", "none", "nan",
+    "n/a", "na", "undefined", "unknown",
+}
+
 
 @dataclass(frozen=True)
 class FileRole:
@@ -51,28 +59,48 @@ class FileRole:
 
 
 def detect_file_role(stem: str) -> FileRole:
+    """Heuristically detect whether file is user-focused or host-focused."""
     up = stem.upper()
+
+    # Explicit prefixes
     if up.startswith(("U.D.", "UD_", "U_", "USER_", "USER.")):
         return FileRole("user")
     if up.startswith(("C.D.", "CD_", "C_", "HOST_", "PC_", "COMPUTER_", "HOST.", "TMTP-", "SRV-", "WS-", "WKST-")) or "TMTP" in up:
         return FileRole("host")
+
+    # Pattern: <prefix>_<id>
+    if "_" in stem:
+        tail = stem.split("_")[-1]
+        if "." in tail:
+            return FileRole("user")
+        if re.search(r"\d", tail) or "-" in tail:
+            return FileRole("host")
+
     return FileRole("unknown")
 
+def extract_owner_from_filename(stem: str) -> str:
+    """Extract owner identifier from file stem.
 
-def extract_real_user_from_filename(stem: str) -> str:
-    """
-    Best-effort extraction of the real user name from file name.
     Examples:
-      U.D.a.avakian -> a.avakian
-      a.avakian     -> a.avakian
-      user_name     -> user_name
+      U.D.a.avakian  -> a.avakian
+      12_A.Avakian   -> A.Avakian
+      12_TMTP-003672 -> TMTP-003672
     """
-    parts = stem.split(".")
-    if len(parts) >= 3 and parts[0].upper() in {"U", "C"} and parts[1].upper() == "D":
-        # U.D.<user>
-        return ".".join(parts[2:])
-    return stem
+    s = (stem or "").strip()
+    if not s:
+        return s
 
+    up = s.upper()
+    if up.startswith(("U.D.", "C.D.")):
+        parts = s.split(".")
+        if len(parts) >= 3:
+            return ".".join(parts[2:])
+        return s
+
+    if "_" in s:
+        return s.split("_")[-1]
+
+    return s
 
 def find_time_col(columns: Iterable[str]) -> Optional[str]:
     cols = list(columns)
@@ -88,14 +116,16 @@ def find_time_col(columns: Iterable[str]) -> Optional[str]:
 
 
 def is_pan_traffic(df: pd.DataFrame) -> pd.Series:
-    required = list(PAN_TRAFFIC_SIGNATURE.keys())
-    if not all(col in df.columns for col in required):
+    """Detect PAN-OS TRAFFIC events (Palo Alto Networks) in the export."""
+    required = {"Name", "DeviceProduct", "DeviceVendor"}
+    if not required.issubset(df.columns):
         return pd.Series([False] * len(df), index=df.index)
-    mask = pd.Series([True] * len(df), index=df.index)
-    for col, val in PAN_TRAFFIC_SIGNATURE.items():
-        mask &= (df[col].astype(str) == val)
-    return mask
 
+    name = df["Name"].astype(str).str.strip().str.upper()
+    prod = df["DeviceProduct"].astype(str).str.strip().str.upper()
+    vend = df["DeviceVendor"].astype(str)
+
+    return name.eq("TRAFFIC") & prod.eq("PAN-OS") & vend.str.contains("Palo Alto Networks", case=False, na=False)
 
 def maybe_extract_hostname(df: pd.DataFrame) -> Optional[str]:
     """
@@ -154,30 +184,108 @@ def anonymize_user_values(df: pd.DataFrame, real_user: str, alias: str) -> pd.Da
         if c in df.columns and c not in cols_to_touch:
             cols_to_touch.append(c)
 
-    if not cols_to_touch:
+def _base_user_token(v: str) -> Optional[str]:
+    """Return canonical username key used for anonymization.
+
+    Normalizes different representations of the same user:
+    - URL-encoded values (e.g. %5c, %40)
+    - DOMAIN\\user  -> user
+    - user@domain     -> user
+
+    Excludes:
+    - empty / placeholder tokens like '-' or 'null'
+    - machine accounts ending with '$'
+    """
+    if v is None:
+        return None
+    if not isinstance(v, str):
+        v = str(v)
+
+    s = v.strip()
+    if not s:
+        return None
+
+    # Treat URL-encoded values as equivalents (e.g. 'uclh%5cuser%40uclh.ru')
+    try:
+        s = unquote(s)
+    except Exception:
+        pass
+
+    s = s.strip()
+    if not s:
+        return None
+
+    low = s.lower()
+    if low in INVALID_USER_TOKENS:
+        return None
+
+    # Drop machine accounts
+    if s.endswith("$"):
+        return None
+
+    # DOMAIN\user
+    if "\\" in s:
+        s = s.split("\\")[-1]
+
+    # user@domain
+    if "@" in s:
+        s = s.split("@")[0]
+
+    s = s.strip()
+    if not s:
+        return None
+
+    low = s.lower()
+    if low in INVALID_USER_TOKENS:
+        return None
+
+    if s.endswith("$"):
+        return None
+
+    return low
+
+
+def ensure_user_map_for_df(df: pd.DataFrame, user_map: Dict[str, str], next_user_index: int) -> int:
+    """Add mappings for any user tokens seen in key columns of df."""
+    cols = [c for c in ("SourceUserName", "DestinationUserName") if c in df.columns]
+    if not cols:
+        return next_user_index
+
+    tokens = set()
+    for c in cols:
+        for v in df[c].head(5000).tolist():
+            t = _base_user_token(v)
+            if t:
+                tokens.add(t)
+
+    for t in sorted(tokens, key=lambda x: x.lower()):
+        if t not in user_map:
+            user_map[t] = f"user{next_user_index:03d}"
+            next_user_index += 1
+
+    return next_user_index
+
+
+def apply_user_map(df: pd.DataFrame, user_map: Dict[str, str]) -> pd.DataFrame:
+    """Replace usernames in SourceUserName/DestinationUserName using user_map (keys are lowercased)."""
+    if df.empty or not user_map:
         return df
 
-    domain_suffix_re = re.compile(r"(?i)(^.*\\)?%s$" % re.escape(real_user))
-    upn_re = re.compile(r"(?i)^%s@.*$" % re.escape(real_user))
+    cols = [c for c in ("SourceUserName", "DestinationUserName") if c in df.columns]
+    if not cols:
+        return df
 
-    for c in cols_to_touch:
-        s = df[c].astype(str)
+    def _map(v: str) -> str:
+        t = _base_user_token(v)
+        if not t:
+            return v
+        alias = user_map.get(t)
+        return alias if alias else v
 
-        # exact match (case-insensitive)
-        mask_exact = s.str.lower() == real_low
-
-        # DOMAIN\user  -> alias
-        mask_domain = s.apply(lambda v: bool(domain_suffix_re.match(v)) if isinstance(v, str) else False)
-
-        # user@domain -> alias
-        mask_upn = s.apply(lambda v: bool(upn_re.match(v)) if isinstance(v, str) else False)
-
-        mask = mask_exact | mask_domain | mask_upn
-        if mask.any():
-            df.loc[mask, c] = alias
+    for c in cols:
+        df[c] = df[c].map(_map)
 
     return df
-
 
 def safe_append_csv(df: pd.DataFrame, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -197,22 +305,36 @@ def normalize_file(
     Processes one TSV file. Returns updated next_user_index.
     """
     stem = path.stem
-    real_user = extract_real_user_from_filename(stem)
+    owner = extract_owner_from_filename(stem)
 
-    # user alias assignment
-    if real_user not in user_map and real_user.strip():
-        user_map[real_user] = f"user{next_user_index:03d}"
-        next_user_index += 1
-    user_alias = user_map.get(real_user, "user000")
+    # If role is still unknown, infer from owner token (dot -> user, otherwise host)
+    role_kind = data_role.kind
+    if role_kind == "unknown":
+        role_kind = "user" if "." in owner else "host"
+
+    # Ensure owner has a stable alias for user-focused files
+    user_alias: Optional[str] = None
+    if role_kind == "user":
+        owner_key = owner.strip().lower()
+        if owner_key and owner_key not in user_map:
+            user_map[owner_key] = f"user{next_user_index:03d}"
+            next_user_index += 1
+        user_alias = user_map.get(owner_key, "user000")
+
 
     # read in chunks for scalability
+    # NOTE: SIEM TSV payloads may contain unescaped quotes inside fields (e.g., Windows event text).
+    # Using QUOTE_NONE makes the parser treat quotes as ordinary characters and prevents ParserError.
     reader = pd.read_csv(
         path,
         sep="\t",
         dtype=str,
         keep_default_na=False,
+        na_filter=False,
         encoding="utf-8",
+        encoding_errors="replace",
         engine="python",
+        quoting=csv.QUOTE_NONE,
         chunksize=chunksize,
     )
 
@@ -225,16 +347,21 @@ def normalize_file(
         time_col = find_time_col(chunk.columns)
         if not time_col:
             # If there is no time column, we cannot split by day; dump as-is
-            out = work_dir / f"{user_alias}_SIEM_no_time.csv"
+            prefix = (hostname or owner or stem) if role_kind == "host" else (user_alias or "user000")
+            out = work_dir / f"{prefix}_SIEM_no_time.csv"
             safe_append_csv(chunk, out)
             continue
 
         chunk, time_col = normalize_timestamp(chunk, time_col)
-        chunk = anonymize_user_values(chunk, real_user, user_alias)
+
+        # Build/extend user mapping based on actual usernames in data and apply it
+        next_user_index = ensure_user_map_for_df(chunk, user_map, next_user_index)
+        chunk = apply_user_map(chunk, user_map)
+
 
         # host name is derived once (first chunk) for host-focused files
-        if hostname is None and data_role.kind == "host":
-            hostname = maybe_extract_hostname(chunk) or stem
+        if hostname is None and role_kind == "host":
+            hostname = maybe_extract_hostname(chunk) or owner or stem
 
         # split PAN traffic vs other SIEM events
         pan_mask = is_pan_traffic(chunk)
@@ -244,16 +371,17 @@ def normalize_file(
         # write per-day
         for date, df_day in non_pan.groupby("Date", dropna=False):
             df_day = df_day.sort_values(by=[time_col], kind="mergesort")
-            if data_role.kind == "host":
-                prefix = (hostname or stem)
+            if role_kind == "host":
+                prefix = (hostname or owner or stem)
             else:
-                prefix = user_alias
+                prefix = (user_alias or "user000")
             out = work_dir / f"{prefix}_SIEM_{date}.csv"
             safe_append_csv(df_day, out)
 
         for date, df_day in pan.groupby("Date", dropna=False):
             df_day = df_day.sort_values(by=[time_col], kind="mergesort")
-            out = work_dir / f"{user_alias}_PAN_{date}.csv"
+            prefix_pan = (hostname or owner or stem) if role_kind == "host" else (user_alias or "user000")
+            out = work_dir / f"{prefix_pan}_PAN_{date}.csv"
             safe_append_csv(df_day, out)
 
     return next_user_index
