@@ -1,0 +1,102 @@
+Timestamp,Name,DeviceProduct,DeviceVendor,DestinationAddress,DestinationUserName,SourceUserName,SourceProcessName,DeviceEventClassID,DeviceCustomString4,DeviceCustomString4Label,DeviceEventCategory,Date
+2025-12-05 11:14:30,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:14:30,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:14:30,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:14:30,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,a.avakian%40uclh.ru,,,Android/12-EAS-2.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,a.avakian%40uclh.ru,,,Android/12-EAS-2.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,a.avakian%40uclh.ru,,,Android/12-EAS-2.0,User-Agent,,2025-12-05
+2025-12-05 11:14:31,,,,10.14.1.72,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:14:54,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:14:54,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:15:36,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\SearchIndexer.exe,4688,"C:\\Windows\\system32\\SearchProtocolHost.exe Global\\UsGthrFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969303_ Global\\UsGthrCtrlFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969303 1 -2147483646 ""Software\\Microsoft\\Windows Search"" ""Mozilla/4.0 (compatible; MSIE 6.0; Windows NT; MS Search 4.0 Robot)"" ""C:\\ProgramData\\Microsoft\\Search\\Data\\Temp\\usgthrsvc"" ""DownLevelDaemon""  ""1""",Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:16:12,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:16:13,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:17:02,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:17:10,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:18:25,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:18:25,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:19:08,,,,10.14.1.72,,user001,,,,,,2025-12-05
+2025-12-05 11:19:14,,,,10.10.7.21,,a.avakian%40uclh.ru,,,Android/12-EAS-2.0,User-Agent,,2025-12-05
+2025-12-05 11:20:28,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:29,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:31,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:31,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:57,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:20:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\SysWOW64\\DllHost.exe /Processid:{776DBC8D-7347-478C-8D71-791E12EF49D8},Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:21:12,An account was successfully logged on.,Windows,Microsoft,10.50.11.31,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:21:12,An account was successfully logged on.,Windows,Microsoft,10.50.11.31,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:21:12,An account was successfully logged on.,Windows,Microsoft,10.50.11.31,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:21:12,An account was successfully logged on.,Windows,Microsoft,10.50.11.31,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:21:34,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:22:57,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:22:57,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:22:57,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:22:57,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:23:14,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Users\\A.Avakian\\AppData\\Local\\Microsoft\\OneDrive\\25.209.1026.0002\\FileCoAuth.exe -Embedding,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:23:54,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:23:54,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:24:05,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:24:05,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:24:05,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:24:08,,,,10.14.1.72,,user001,,,,,,2025-12-05
+2025-12-05 11:24:08,,,,10.14.1.72,,user001,,,,,,2025-12-05
+2025-12-05 11:24:15,,,,10.10.7.21,,a.avakian%40uclh.ru,,,Android/12-EAS-2.0,User-Agent,,2025-12-05
+2025-12-05 11:24:15,,,,10.10.7.21,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:24:34,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\SearchIndexer.exe,4688,"C:\\Windows\\system32\\SearchProtocolHost.exe Global\\UsGthrFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969305_ Global\\UsGthrCtrlFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969305 1 -2147483646 ""Software\\Microsoft\\Windows Search"" ""Mozilla/4.0 (compatible; MSIE 6.0; Windows NT; MS Search 4.0 Robot)"" ""C:\\ProgramData\\Microsoft\\Search\\Data\\Temp\\usgthrsvc"" ""DownLevelDaemon""  ""1""",Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:04,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:05,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:05,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:05,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:05,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:12,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:12,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:33,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:54,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:54,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:58,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\system32\\BackgroundTaskHost.exe -ServerName:BackgroundTaskHost.WebAccountProvider,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:25:58,A new process has been created.,Windows,Microsoft,10.50.101.5,-,user001,C:\\Program Files (x86)\\Citrix\\ICA Client\\SelfServicePlugin\\SelfServicePlugin.exe,4688,C:\\Program Files (x86)\\Citrix\\ICA Client\\SelfServicePlugin\\SelfService.exe -periodicpoll,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:05,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:05,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:15,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:15,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:15,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:30,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:30,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:30,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:30,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:26:30,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\SearchIndexer.exe,4688,"C:\\Windows\\system32\\SearchProtocolHost.exe Global\\UsGthrFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969306_ Global\\UsGthrCtrlFltPipeMssGthrPipe_S-1-5-21-2466243303-2766591412-4162608119-10969306 1 -2147483646 ""Software\\Microsoft\\Windows Search"" ""Mozilla/4.0 (compatible; MSIE 6.0; Windows NT; MS Search 4.0 Robot)"" ""C:\\ProgramData\\Microsoft\\Search\\Data\\Temp\\usgthrsvc"" ""DownLevelDaemon""  ""1""",Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:09,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\system32\\backgroundTaskHost.exe -ServerName:Global.DesktopSpotlight.AppXz2j21w56bgxkgsjhtn7zkjsepq96erz2.mca,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:09,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\System32\\RuntimeBroker.exe -Embedding,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:17,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:29,An account was successfully logged on.,Windows,Microsoft,10.14.1.72,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:29,Group membership information.,Windows,Microsoft,10.14.1.72,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:29,An account was logged off.,Windows,Microsoft,10.14.1.72,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:41,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:41,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:27:50,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:28:08,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:39:14,,,,10.10.7.21,,uclh%5Ca.avakian%40uclh.ru,,,Outlook-iOS-Android/1.0,User-Agent,,2025-12-05
+2025-12-05 11:39:23,An account was successfully logged on.,Windows,Microsoft,10.50.11.35,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:39:29,An account was logged off.,Windows,Microsoft,10.14.1.71,user001,,,4634,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:39:31,An account was successfully logged on.,Windows,Microsoft,10.14.1.71,user001,-,Kerberos,4624,-,Restricted admin mode,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:39:31,Group membership information.,Windows,Microsoft,10.14.1.71,user001,-,,4627,,,Microsoft-Windows-Security-Auditing,2025-12-05
+2025-12-05 11:39:43,A new process has been created.,Windows,Microsoft,10.50.101.5,user001,tmtp-003672$,C:\\Windows\\System32\\svchost.exe,4688,C:\\Windows\\System32\\smartscreen.exe -Embedding,Command Line,Microsoft-Windows-Security-Auditing,2025-12-05
