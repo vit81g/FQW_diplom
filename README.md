@@ -56,6 +56,10 @@ python visualize_reports.py --work ./work --scope day --top 20
 pip install -U pandas numpy scikit-learn matplotlib
 ```
 
+## Данные на yandex disk
+- данные по пользователям, хостам и логи с NGFW Palo Alto <a href="https://disk.360.yandex.ru/d/tDWSEVv5PEz9gQ">(ссылка на yandex disk)</a>
+
+
 ## Результаты работы
 - Таблицы аномалий для пользователей и хостов.
 - Объяснения ключевых факторов отклонения.
