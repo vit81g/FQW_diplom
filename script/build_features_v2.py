@@ -20,7 +20,7 @@ build_features_v2.py
 - features_hosts.csv
 
 Запуск:
-python build_features_v2.py --work .\work
+python build_features_v2.py --work .\\work
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from typing import Dict, Tuple, Optional, List
 import pandas as pd
 
 
-EXCLUDE_FILES = {
+EXCLUDE_FILES: set[str] = {
     "user_mapping.csv",
     "features_users.csv",
     "features_hosts.csv",
@@ -42,19 +42,19 @@ EXCLUDE_FILES = {
 }
 
 # Колонки вашей выгрузки (скрипт терпим к отсутствующим)
-COL_TIMESTAMP = "Timestamp"
-COL_DATE = "Date"
-COL_NAME = "Name"
-COL_DEVICE_PRODUCT = "DeviceProduct"
-COL_DEVICE_VENDOR = "DeviceVendor"
-COL_DST_ADDR = "DestinationAddress"
-COL_SRC_PROC = "SourceProcessName"
-COL_EVENT_CLASS = "DeviceEventClassID"
-COL_CATEGORY = "DeviceEventCategory"
-COL_DST_USER = "DestinationUserName"
-COL_SRC_USER = "SourceUserName"
+COL_TIMESTAMP: str = "Timestamp"
+COL_DATE: str = "Date"
+COL_NAME: str = "Name"
+COL_DEVICE_PRODUCT: str = "DeviceProduct"
+COL_DEVICE_VENDOR: str = "DeviceVendor"
+COL_DST_ADDR: str = "DestinationAddress"
+COL_SRC_PROC: str = "SourceProcessName"
+COL_EVENT_CLASS: str = "DeviceEventClassID"
+COL_CATEGORY: str = "DeviceEventCategory"
+COL_DST_USER: str = "DestinationUserName"
+COL_SRC_USER: str = "SourceUserName"
 
-INVALID_USER_TOKENS = {
+INVALID_USER_TOKENS: set[str] = {
     "", "-", "—", "–", "null", "none", "nan", "n/a", "na", "unknown", "undef", "undefined"
 }
 
@@ -62,7 +62,7 @@ DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
 
 
 def _is_pan_traffic(df: pd.DataFrame) -> pd.Series:
-    """PAN: Name=TRAFFIC, DeviceProduct=PAN-OS, DeviceVendor содержит 'Palo Alto Networks'."""
+    """Проверяет PAN-traffic: Name=TRAFFIC, DeviceProduct=PAN-OS, DeviceVendor содержит 'Palo Alto Networks'."""
     if not {COL_NAME, COL_DEVICE_PRODUCT, COL_DEVICE_VENDOR}.issubset(df.columns):
         return pd.Series([False] * len(df), index=df.index)
     name = df[COL_NAME].astype(str).str.strip().str.upper()
@@ -76,11 +76,13 @@ def _is_pan_traffic(df: pd.DataFrame) -> pd.Series:
 
 
 def _extract_date_from_filename(name: str) -> Optional[str]:
+    """Извлекает дату (YYYY-MM-DD) из имени файла."""
     m = DATE_RE.findall(name)
     return m[-1] if m else None
 
 
 def _classify_kind_from_filename(name: str) -> Optional[str]:
+    """Определяет тип файла по имени: SIEM или PAN."""
     up = name.upper()
     if "_SIEM_" in up or up.endswith("_SIEM.CSV") or "SIEM" in up:
         return "SIEM"
@@ -90,6 +92,7 @@ def _classify_kind_from_filename(name: str) -> Optional[str]:
 
 
 def _extract_entity_from_filename(name: str) -> str:
+    """Извлекает сущность (userXXX или hostname) из имени файла."""
     stem = Path(name).stem
     up = stem.upper()
     for token in ("_SIEM_", "_PAN_"):
@@ -104,30 +107,30 @@ def _extract_entity_from_filename(name: str) -> str:
 
 
 def _role_from_entity(entity: str) -> str:
-    # user entities: user001, user002 ...
+    """Определяет роль сущности: user или host."""
     if re.fullmatch(r"user\d{3}", entity, flags=re.IGNORECASE):
         return "user"
     return "host"
 
 
 def _safe_read_csv(path: Path) -> pd.DataFrame:
-    # Суточные CSV уже нормализованы, читаем как строки
+    """Читает суточные CSV как строки (данные уже нормализованы)."""
     return pd.read_csv(path, dtype=str, keep_default_na=True)
 
 
 def _ensure_date_column(df: pd.DataFrame, fallback_date: Optional[str]) -> pd.DataFrame:
-    # Если уже есть Date — используем
+    """Обеспечивает наличие колонки Date, при необходимости — по Timestamp или имени файла."""
     if COL_DATE in df.columns:
         df[COL_DATE] = df[COL_DATE].astype(str)
         return df
 
-    # Иначе пробуем Timestamp
+    # Иначе пробуем Timestamp.
     if COL_TIMESTAMP in df.columns:
         dt = pd.to_datetime(df[COL_TIMESTAMP], errors="coerce")
         df[COL_DATE] = dt.dt.date.astype("string")
         return df
 
-    # Иначе берём дату из имени файла
+    # Иначе берём дату из имени файла.
     if fallback_date:
         df[COL_DATE] = fallback_date
         return df
@@ -137,6 +140,7 @@ def _ensure_date_column(df: pd.DataFrame, fallback_date: Optional[str]) -> pd.Da
 
 
 def _hour_series(df: pd.DataFrame) -> pd.Series:
+    """Возвращает часы события (0-23) из Timestamp."""
     if COL_TIMESTAMP not in df.columns:
         return pd.Series([pd.NA] * len(df), index=df.index)
     dt = pd.to_datetime(df[COL_TIMESTAMP], errors="coerce")
@@ -144,6 +148,7 @@ def _hour_series(df: pd.DataFrame) -> pd.Series:
 
 
 def _share_in_hours(hours: pd.Series, start: int, end: int) -> float:
+    """Доля событий в диапазоне часов (включительно)."""
     if hours is None or hours.isna().all():
         return 0.0
     valid = hours.dropna().astype(int)
@@ -153,6 +158,7 @@ def _share_in_hours(hours: pd.Series, start: int, end: int) -> float:
 
 
 def _nunique(df: pd.DataFrame, col: str) -> int:
+    """Количество уникальных непустых значений в колонке."""
     if col not in df.columns:
         return 0
     s = df[col].dropna().astype(str).str.strip()
@@ -161,7 +167,7 @@ def _nunique(df: pd.DataFrame, col: str) -> int:
 
 
 def _unique_users(df: pd.DataFrame) -> int:
-    # для host/day — сколько уникальных пользователей работало с хостом
+    """Для host/day: сколько уникальных пользователей взаимодействовало с хостом."""
     cols = [c for c in (COL_SRC_USER, COL_DST_USER) if c in df.columns]
     if not cols:
         return 0
@@ -174,6 +180,7 @@ def _unique_users(df: pd.DataFrame) -> int:
 
 
 def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.DataFrame, role: str) -> Dict[str, object]:
+    """Собирает агрегированные признаки по одной сущности за день."""
     hours_siem = _hour_series(df_siem)
     hours_pan = _hour_series(df_pan)
 
@@ -184,7 +191,7 @@ def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.Dat
         "is_weekend": int(pd.to_datetime(date).dayofweek >= 5) if pd.notna(date) else 0,
     }
 
-    # SIEM признаки
+    # SIEM признаки.
     row.update({
         "siem_events_total": int(len(df_siem)),
         "siem_unique_destination_addr": _nunique(df_siem, COL_DST_ADDR),
@@ -197,7 +204,7 @@ def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.Dat
         "siem_business_share": _share_in_hours(hours_siem, 9, 17),
     })
 
-    # PAN признаки
+    # PAN признаки.
     row.update({
         "pan_events_total": int(len(df_pan)),
         "pan_unique_destination_addr": _nunique(df_pan, COL_DST_ADDR),
@@ -220,14 +227,15 @@ def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.Dat
 
 
 def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    all_csv = list(work_dir.glob("*.csv"))
-    csv_files = sorted([p for p in all_csv if p.name not in EXCLUDE_FILES])
+    """Главная функция построения признаков для users и hosts."""
+    all_csv: list[Path] = list(work_dir.glob("*.csv"))
+    csv_files: list[Path] = sorted([p for p in all_csv if p.name not in EXCLUDE_FILES])
 
     print(f"[*] Work dir: {work_dir}")
     print(f"[*] Found CSV files: {len(all_csv)}")
 
-    recognized = 0
-    parsed = 0
+    recognized: int = 0
+    parsed: int = 0
     skipped: List[Tuple[str, str]] = []
 
     # (role, entity, day) -> {"SIEM": df, "PAN": df}
@@ -253,7 +261,7 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
             skipped.append((fname, "no_date_in_file_or_columns"))
             continue
 
-        # если kind=SIEM и внутри есть PAN-traffic — отделяем
+        # Если kind=SIEM и внутри есть PAN-traffic — отделяем.
         if kind == "SIEM":
             pan_mask = _is_pan_traffic(df)
             df_pan = df[pan_mask].copy()
