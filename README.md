@@ -58,6 +58,8 @@ pip install -U pandas numpy scikit-learn matplotlib
 
 ## Данные на yandex disk
 - данные по пользователям, хостам и логи с NGFW Palo Alto <a href="https://disk.360.yandex.ru/d/tDWSEVv5PEz9gQ">(ссылка на yandex disk)</a>
+- данные взяты с SIEM KUMA (Kaspersky)
+- данные необходимо обезличить перед исполтзованием с помощью python_script.py (переименует всех пользователей в userXXX)
 
 
 ## Результаты работы
