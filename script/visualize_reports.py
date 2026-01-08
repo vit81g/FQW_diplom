@@ -3,13 +3,13 @@
 """
 visualize_reports.py
 
-CLI tool to generate anomaly report charts (day/week/month).
-Charts are saved into: work/reports/<scope>_<date>/
+CLI-инструмент для генерации графиков аномалий (day/week/month).
+Графики сохраняются в: work/reports/<scope>_<date>/
 
-Examples:
-  python visualize_reports.py --work .\work --scope day --top 20
-  python visualize_reports.py --work .\work --scope week --date 2025-12-31
-  python visualize_reports.py --work .\work --scope month
+Примеры:
+  python visualize_reports.py --work .\\work --scope day --top 20
+  python visualize_reports.py --work .\\work --scope week --date 2025-12-31
+  python visualize_reports.py --work .\\work --scope month
 """
 
 from __future__ import annotations
@@ -23,25 +23,28 @@ import pandas as pd
 import viz_core as core
 
 
-def run(work: Path,
-        scope: str,
-        date: Optional[str],
-        top: int,
-        contamination: float,
-        n_estimators: int,
-        n_neighbors: int,
-        random_state: int) -> Path:
-    users = core.load_features(work, "users")
-    hosts = core.load_features(work, "hosts")
+def run(
+    work: Path,
+    scope: str,
+    date: Optional[str],
+    top: int,
+    contamination: float,
+    n_estimators: int,
+    n_neighbors: int,
+    random_state: int,
+) -> Path:
+    """Строит отчёт заданного масштаба и сохраняет графики."""
+    users: pd.DataFrame = core.load_features(work, "users")
+    hosts: pd.DataFrame = core.load_features(work, "hosts")
 
-    available = core.available_dates(users, hosts)
+    available: list[str] = core.available_dates(users, hosts)
     if not available:
         raise ValueError("No dates found in features files.")
 
-    target = date if date else available[-1]
+    target: str = date if date else available[-1]
     target = str(pd.to_datetime(target, errors="raise").date())
 
-    out_base = core.ensure_dir(work / "reports")
+    out_base: Path = core.ensure_dir(work / "reports")
 
     if scope == "day":
         out = core.ensure_dir(out_base / f"day_{target}")
@@ -57,18 +60,18 @@ def run(work: Path,
         core.save_severity_pie(out, sh, f"Hosts severity {target}", f"severity_hosts_{target}.png")
         return out
 
-    window = 7 if scope == "week" else 30
+    window: int = 7 if scope == "week" else 30
     if target not in available:
         raise ValueError(f"Date {target} is not present in data. Last available: {available[-1]}")
 
-    idx = available.index(target)
-    start = max(0, idx - (window - 1))
-    dates = available[start:idx + 1]
+    idx: int = available.index(target)
+    start: int = max(0, idx - (window - 1))
+    dates: list[str] = available[start:idx + 1]
 
     out = core.ensure_dir(out_base / f"{scope}_{target}")
 
-    tu = core.build_trend(users, dates, contamination, n_estimators, n_neighbors, random_state)
-    th = core.build_trend(hosts, dates, contamination, n_estimators, n_neighbors, random_state)
+    tu: pd.DataFrame = core.build_trend(users, dates, contamination, n_estimators, n_neighbors, random_state)
+    th: pd.DataFrame = core.build_trend(hosts, dates, contamination, n_estimators, n_neighbors, random_state)
 
     tu.to_csv(out / f"trend_users_{scope}_{target}.csv", index=False)
     th.to_csv(out / f"trend_hosts_{scope}_{target}.csv", index=False)
@@ -96,8 +99,16 @@ def main() -> int:
     p.add_argument("--random-state", type=int, default=42)
     args = p.parse_args()
 
-    out = run(Path(args.work), args.scope, args.date, args.top,
-              args.contamination, args.n_estimators, args.n_neighbors, args.random_state)
+    out: Path = run(
+        Path(args.work),
+        args.scope,
+        args.date,
+        args.top,
+        args.contamination,
+        args.n_estimators,
+        args.n_neighbors,
+        args.random_state,
+    )
     print(f"[+] Saved to: {out}")
     return 0
 

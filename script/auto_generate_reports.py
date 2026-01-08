@@ -3,12 +3,12 @@
 """
 auto_generate_reports.py
 
-Generate all reports in one run:
+Генерация всех отчётов одним запуском:
 - day
 - week
 - month
 
-Outputs to: work/reports/<scope>_<date>/
+Результаты сохраняются в: work/reports/<scope>_<date>/
 """
 
 from __future__ import annotations
@@ -21,21 +21,24 @@ import pandas as pd
 import viz_core as core
 
 
-def _run_one(work: Path,
-             scope: str,
-             target: str,
-             top: int,
-             contamination: float,
-             n_estimators: int,
-             n_neighbors: int,
-             random_state: int) -> Path:
-    users = core.load_features(work, "users")
-    hosts = core.load_features(work, "hosts")
-    available = core.available_dates(users, hosts)
+def _run_one(
+    work: Path,
+    scope: str,
+    target: str,
+    top: int,
+    contamination: float,
+    n_estimators: int,
+    n_neighbors: int,
+    random_state: int,
+) -> Path:
+    """Строит отчёт для указанного масштаба (day/week/month)."""
+    users: pd.DataFrame = core.load_features(work, "users")
+    hosts: pd.DataFrame = core.load_features(work, "hosts")
+    available: list[str] = core.available_dates(users, hosts)
     if target not in available:
         raise ValueError(f"Date {target} not present. Last available: {available[-1]}")
 
-    out_base = core.ensure_dir(work / "reports")
+    out_base: Path = core.ensure_dir(work / "reports")
 
     if scope == "day":
         out = core.ensure_dir(out_base / f"day_{target}")
@@ -51,15 +54,15 @@ def _run_one(work: Path,
         core.save_severity_pie(out, sh, f"Hosts severity {target}", f"severity_hosts_{target}.png")
         return out
 
-    window = 7 if scope == "week" else 30
-    idx = available.index(target)
-    start = max(0, idx - (window - 1))
-    dates = available[start:idx + 1]
+    window: int = 7 if scope == "week" else 30
+    idx: int = available.index(target)
+    start: int = max(0, idx - (window - 1))
+    dates: list[str] = available[start:idx + 1]
 
     out = core.ensure_dir(out_base / f"{scope}_{target}")
 
-    tu = core.build_trend(users, dates, contamination, n_estimators, n_neighbors, random_state)
-    th = core.build_trend(hosts, dates, contamination, n_estimators, n_neighbors, random_state)
+    tu: pd.DataFrame = core.build_trend(users, dates, contamination, n_estimators, n_neighbors, random_state)
+    th: pd.DataFrame = core.build_trend(hosts, dates, contamination, n_estimators, n_neighbors, random_state)
 
     tu.to_csv(out / f"trend_users_{scope}_{target}.csv", index=False)
     th.to_csv(out / f"trend_hosts_{scope}_{target}.csv", index=False)
@@ -86,11 +89,11 @@ def main() -> int:
     p.add_argument("--random-state", type=int, default=42)
     args = p.parse_args()
 
-    work = Path(args.work)
-    users = core.load_features(work, "users")
-    hosts = core.load_features(work, "hosts")
+    work: Path = Path(args.work)
+    users: pd.DataFrame = core.load_features(work, "users")
+    hosts: pd.DataFrame = core.load_features(work, "hosts")
 
-    target = args.date or core.pick_latest_date(users, hosts)
+    target: str = args.date or core.pick_latest_date(users, hosts)
     target = str(pd.to_datetime(target, errors="raise").date())
 
     out_day = _run_one(work, "day", target, args.top, args.contamination, args.n_estimators, args.n_neighbors, args.random_state)

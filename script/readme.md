@@ -1,143 +1,130 @@
-pip install -U scikit-learn
-pip install pandas
-pip install -U matplotlib
+# Документация по скриптам
 
+## Общие зависимости
 
-Как работает модуль
-Вход
+Установите библиотеки (пример для Windows/PowerShell или cmd):
 
-Берёт все *.csv в ./work/, кроме:
+```bash
+pip install -U pandas scikit-learn matplotlib numpy
+```
 
-user_mapping.csv
+> Примечание: все скрипты ожидают структуру `work/` и `data/` внутри каталога `script/`,
+> если иное не указано аргументами командной строки.
 
-features_users.csv
+---
 
-features_hosts.csv
+## python_script.py — нормализация исходных SIEM выгрузок
 
-Поддерживаемые имена файлов (регистр не важен):
+**Назначение:**
+- читает все `*.tsv` и `*.txt` из `script/data/`;
+- удаляет служебные колонки (`ClusterID`, `ClusterName`, `TenantID`, `TenantName`);
+- анонимизирует пользователей в формат `userXXX`;
+- разделяет события по дням и сохраняет в `script/work/`;
+- отдельно сохраняет PAN-OS TRAFFIC события;
+- формирует таблицу соответствий `user_mapping.csv`.
 
-user###_SIEM_YYYY-MM-DD.csv
+**Запуск:**
+```bash
+python python_script.py
+python python_script.py --data ./data --work ./work --chunksize 200000
+```
 
-user###_PAN_YYYY-MM-DD.csv
+---
 
-<hostname>_SIEM_YYYY-MM-DD.csv
+## build_features_v2.py — построение признаков
 
-<hostname>_PAN_YYYY-MM-DD.csv
+**Назначение:**
+- читает суточные CSV из `work/` (форматы `userXXX_SIEM_YYYY-MM-DD.csv`, `userXXX_PAN_YYYY-MM-DD.csv`,
+  `<hostname>_SIEM_YYYY-MM-DD.csv`, `<hostname>_PAN_YYYY-MM-DD.csv`);
+- собирает числовые признаки для пользователей и хостов;
+- сохраняет `features_users.csv` и `features_hosts.csv`.
 
-Если формат чуть отличается — модуль всё равно пытается вытащить:
+**Запуск:**
+```bash
+python build_features_v2.py --work ./work
+```
 
-SIEM/PAN из имени,
+---
 
-дату как последнее вхождение YYYY-MM-DD,
+## preprocess_features.py — очистка таблиц признаков
 
-entity как часть до _SIEM_ / _PAN_.
+**Назначение:**
+- приводит `date` к формату `YYYY-MM-DD`;
+- преобразует признаки к числовому типу;
+- заполняет пропуски в признаках нулями;
+- сохраняет `features_users_clean.csv` и `features_hosts_clean.csv`.
 
-Выход (в ту же папку work/)
+**Запуск:**
+```bash
+python preprocess_features.py --work ./work
+# или
+python preprocess_features.py --users ./work/features_users.csv --hosts ./work/features_hosts.csv --out-dir ./work
+```
 
-work/features_users.csv
+---
 
-work/features_hosts.csv
+## train_anomaly_models.py — обучение и скоринг аномалий
 
+**Назначение:**
+- обучает Isolation Forest и LOF на всех днях, кроме целевого;
+- считает аномальные скоры для выбранной даты;
+- сохраняет топ-N аномалий и метаданные.
 
-Какие признаки формируются (фиксированный набор, без “раздувания” one-hot)
+**Запуск:**
+```bash
+python train_anomaly_models.py --work ./work
+python train_anomaly_models.py --work ./work --date 2025-12-17 --top 30
+```
 
-Для каждой сущности (user или host) за сутки строятся числовые признаки отдельно по SIEM и PAN:
+---
 
-SIEM-пакет признаков
+## explain_anomalies.py — объяснение причин аномалий
 
-siem_events_total
+**Назначение:**
+- для каждой аномалии определяет 3–5 признаков с наибольшим отклонением от исторической базы;
+- присваивает уровень серьёзности по рангу внутри дня;
+- сохраняет отчёты для users, hosts и общий файл.
 
-siem_unique_destination_addr
+**Запуск:**
+```bash
+python explain_anomalies.py --work ./work --date 2025-12-31
+python explain_anomalies.py --work ./work
+```
 
-siem_unique_source_process
+---
 
-siem_unique_event_class
+## visualize_reports.py — генерация графиков (day/week/month)
 
-siem_unique_category
+**Назначение:**
+- строит графики аномалий для суток/недели/месяца;
+- сохраняет PNG и CSV в `work/reports/<scope>_<date>/`.
 
-siem_unique_name
+**Запуск:**
+```bash
+python visualize_reports.py --work ./work --scope day --top 20
+python visualize_reports.py --work ./work --scope week --date 2025-12-31
+python visualize_reports.py --work ./work --scope month
+```
 
-siem_unique_hours
+---
 
-siem_night_share (00:00–05:59)
+## auto_generate_reports.py — полный пакет отчётов
 
-siem_business_share (09:00–17:59)
+**Назначение:**
+- запускает генерацию day/week/month отчётов за одну команду;
+- сохраняет результаты в `work/reports/`.
 
-PAN-пакет признаков
+**Запуск:**
+```bash
+python auto_generate_reports.py --work ./work
+```
 
-pan_events_total
+---
 
-pan_unique_destination_addr
+## viz_core.py — общие функции визуализации
 
-pan_unique_event_class
+**Назначение:**
+- содержит функции загрузки признаков, расчёта скорингов и построения графиков;
+- используется внутри `visualize_reports.py` и `auto_generate_reports.py`.
 
-pan_unique_category
-
-pan_unique_name
-
-pan_unique_hours
-
-pan_night_share
-
-pan_business_share
-
-Дополнительно
-
-day_of_week (0=понедельник … 6=воскресенье)
-
-is_weekend
-
-pan_share_of_all_events = pan_events_total / (siem_events_total + pan_events_total)
-
-Для hosts дополнительно
-
-siem_unique_users, pan_unique_users — число уникальных пользователей (по SourceUserName и DestinationUserName, исключая служебные токены и машинные аккаунты ...$).
-
-
-Запуск
-
-1. 
-python_script.py
-
-2. 
-python build_features.py --work .\work 
-
-3. 
-Из вашей папки проекта (где есть work/):
-python preprocess_features.py --work .\work
-
-4. 
-python .\train_anomaly_models.py --work .\work
-
-5.
-python .\explain_anomalies.py --work .\work
-
-6. 
-Отчёт за сутки (по последней дате)
-python .\visualize_reports.py --work .\work --scope day --top 20
-
-Отчёт за неделю (7 дней, конец = 2025-12-31)
-python .\visualize_reports.py --work .\work --scope week --date 2025-12-31
-
-Отчёт за месяц (30 дней, конец = последняя дата в данных)
-python .\visualize_reports.py --work .\work --scope month
-
-
-Графики будут здесь:
-
-work\reports\day_YYYY-MM-DD\*.png
-
-work\reports\week_YYYY-MM-DD\*.png
-
-work\reports\month_YYYY-MM-DD\*.png
-
-7.
-Интерактивно:
-
-python .\visualize_reports.py
-
-
-Автоматически (сразу day/week/month):
-
-python .\auto_generate_reports.py --work .\work
-
+**Прямой запуск не требуется.**

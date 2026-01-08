@@ -3,27 +3,27 @@
 """
 train_anomaly_models.py
 
-Train + score anomaly detectors (Isolation Forest + LOF) on daily feature tables and export TOP anomalies
-for a selected date (default: latest date in the dataset).
+Обучение и скоринг детекторов аномалий (Isolation Forest + LOF) на дневных таблицах признаков.
+Экспортирует TOP-N аномалий для выбранной даты (по умолчанию — последняя дата в датасете).
 
-Inputs (in work dir):
+Вход (work dir):
   - features_users_clean.csv
   - features_hosts_clean.csv
 
-Outputs (written to work dir):
+Выход (work dir):
   - anomalies_users_YYYY-MM-DD.csv
   - anomalies_hosts_YYYY-MM-DD.csv
   - anomalies_users_YYYY-MM-DD_meta.json
   - anomalies_hosts_YYYY-MM-DD_meta.json
 
-Notes:
-- Models are trained on all days except the target day (train = df[date != target]).
-  If the dataset contains only the target day, training falls back to all rows.
-- LOF is used in "novelty" mode to score unseen samples.
+Особенности:
+- Модели обучаются на всех днях, кроме target day (train = df[date != target]).
+  Если есть только один день, обучение выполняется на всех строках.
+- LOF используется в режиме novelty для скоринга новых наблюдений.
 
-Usage:
-  python train_anomaly_models.py --work .\work
-  python train_anomaly_models.py --work .\work --date 2025-12-17 --top 30
+Запуск:
+  python train_anomaly_models.py --work .\\work
+  python train_anomaly_models.py --work .\\work --date 2025-12-17 --top 30
 """
 
 from __future__ import annotations
@@ -42,17 +42,18 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import Pipeline
 
 
-ID_COLS = ["entity", "date"]
+ID_COLS: list[str] = ["entity", "date"]
 
 
 def _load_features(path: Path, name: str) -> pd.DataFrame:
+    """Загружает таблицу признаков и нормализует колонку date."""
     if not path.exists():
         raise FileNotFoundError(f"{name} features file not found: {path}")
     df = pd.read_csv(path, dtype=str, keep_default_na=True)
     for c in ID_COLS:
         if c not in df.columns:
             raise ValueError(f"{name}: required column missing: {c}")
-    # Normalize date
+    # Нормализуем дату.
     dt = pd.to_datetime(df["date"], errors="coerce")
     if dt.isna().all():
         raise ValueError(f"{name}: could not parse any dates from column 'date'")
@@ -60,13 +61,14 @@ def _load_features(path: Path, name: str) -> pd.DataFrame:
     return df
 
 
-def _prepare_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, list]:
-    feature_cols = [c for c in df.columns if c not in ID_COLS]
+def _prepare_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, list[str]]:
+    """Готовит матрицу признаков (numeric) и возвращает список колонок."""
+    feature_cols: list[str] = [c for c in df.columns if c not in ID_COLS]
     if not feature_cols:
         raise ValueError("No feature columns found (expected columns besides entity/date).")
-    X = df[feature_cols].copy()
+    X: pd.DataFrame = df[feature_cols].copy()
 
-    # Coerce numeric and fill NaN with 0 for safety
+    # Приводим к числовому типу и заполняем NaN нулями.
     for c in feature_cols:
         X[c] = pd.to_numeric(X[c], errors="coerce")
     X = X.fillna(0)
@@ -75,35 +77,39 @@ def _prepare_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, list]:
 
 
 def _choose_target_date(df: pd.DataFrame, target: Optional[str]) -> str:
+    """Выбирает целевую дату (явно заданную или максимальную)."""
     if target:
-        # validate format by parsing
+        # Проверяем формат, парсингом даты.
         t = pd.to_datetime(target, errors="raise").date()
         return str(t)
-    # default = max date
+    # По умолчанию — максимальная дата.
     return str(pd.to_datetime(df["date"]).max().date())
 
 
 def _split_train_test(df: pd.DataFrame, target_date: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    test_df = df[df["date"] == target_date].copy()
+    """Разделяет данные на train/test по дате."""
+    test_df: pd.DataFrame = df[df["date"] == target_date].copy()
     if test_df.empty:
         raise ValueError(f"No rows found for target date: {target_date}. Available dates: {sorted(df['date'].unique())[:10]} ...")
-    train_df = df[df["date"] != target_date].copy()
+    train_df: pd.DataFrame = df[df["date"] != target_date].copy()
     if train_df.empty:
-        # fallback if only one day exists
+        # Если есть только один день, используем весь набор.
         train_df = df.copy()
     return train_df, test_df
 
 
-def _fit_models(X_train: np.ndarray,
-                contamination: float,
-                n_estimators: int,
-                max_samples: str | int,
-                n_neighbors: int,
-                random_state: int) -> Dict[str, object]:
-    # Robust scaling helps LOF (distance-based) and is safe for IF
-    scaler = RobustScaler(with_centering=True, with_scaling=True, unit_variance=False)
+def _fit_models(
+    X_train: np.ndarray,
+    contamination: float,
+    n_estimators: int,
+    max_samples: str | int,
+    n_neighbors: int,
+    random_state: int,
+) -> Dict[str, object]:
+    """Обучает IsolationForest и LOF (novelty) с робастным масштабированием."""
+    scaler: RobustScaler = RobustScaler(with_centering=True, with_scaling=True, unit_variance=False)
 
-    iso = IsolationForest(
+    iso: IsolationForest = IsolationForest(
         n_estimators=n_estimators,
         contamination=contamination,
         max_samples=max_samples,
@@ -111,8 +117,8 @@ def _fit_models(X_train: np.ndarray,
         n_jobs=-1,
     )
 
-    # LOF novelty=True to score unseen samples
-    lof = LocalOutlierFactor(
+    # LOF в режиме novelty для скоринга новых наблюдений.
+    lof: LocalOutlierFactor = LocalOutlierFactor(
         n_neighbors=n_neighbors,
         contamination=contamination,
         novelty=True,
@@ -120,8 +126,8 @@ def _fit_models(X_train: np.ndarray,
         p=2,
     )
 
-    iso_pipe = Pipeline([("scaler", scaler), ("model", iso)])
-    lof_pipe = Pipeline([("scaler", scaler), ("model", lof)])
+    iso_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", iso)])
+    lof_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", lof)])
 
     iso_pipe.fit(X_train)
     lof_pipe.fit(X_train)
@@ -130,14 +136,15 @@ def _fit_models(X_train: np.ndarray,
 
 
 def _score(models: Dict[str, object], X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    iso_pipe = models["iso"]
-    lof_pipe = models["lof"]
+    """Считает аномальные скоры по двум моделям."""
+    iso_pipe: Pipeline = models["iso"]
+    lof_pipe: Pipeline = models["lof"]
 
-    # sklearn decision_function: higher = more normal
+    # decision_function: чем больше, тем "нормальнее".
     iso_inlier = iso_pipe.decision_function(X)
     lof_inlier = lof_pipe.decision_function(X)
 
-    # Convert to anomaly score: higher = more anomalous
+    # Переводим в аномальный скор: чем больше, тем более аномально.
     iso_score = -iso_inlier
     lof_score = -lof_inlier
 
@@ -145,17 +152,21 @@ def _score(models: Dict[str, object], X: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 
 def _minmax(a: np.ndarray) -> np.ndarray:
-    amin = np.min(a)
-    amax = np.max(a)
+    """Нормализация min-max."""
+    amin: float = float(np.min(a))
+    amax: float = float(np.max(a))
     if not np.isfinite(amin) or not np.isfinite(amax) or amax == amin:
         return np.zeros_like(a, dtype=float)
     return (a - amin) / (amax - amin)
 
 
-def _build_report(test_df: pd.DataFrame,
-                  iso_score: np.ndarray,
-                  lof_score: np.ndarray) -> pd.DataFrame:
-    out = test_df[ID_COLS].copy()
+def _build_report(
+    test_df: pd.DataFrame,
+    iso_score: np.ndarray,
+    lof_score: np.ndarray,
+) -> pd.DataFrame:
+    """Формирует итоговую таблицу скоринга и рангов."""
+    out: pd.DataFrame = test_df[ID_COLS].copy()
 
     out["score_isolation_forest"] = iso_score
     out["score_lof"] = lof_score
@@ -164,7 +175,7 @@ def _build_report(test_df: pd.DataFrame,
     out["score_lof_norm"] = _minmax(lof_score)
     out["score_combined_norm"] = (out["score_isolation_forest_norm"] + out["score_lof_norm"]) / 2.0
 
-    # Rank: 1 = most anomalous (highest anomaly score)
+    # Ранг: 1 = наиболее аномальный.
     out["rank_isolation_forest"] = out["score_isolation_forest"].rank(ascending=False, method="average")
     out["rank_lof"] = out["score_lof"].rank(ascending=False, method="average")
     out["rank_combined"] = (out["rank_isolation_forest"] + out["rank_lof"]) / 2.0
@@ -173,16 +184,19 @@ def _build_report(test_df: pd.DataFrame,
     return out
 
 
-def _write_outputs(work_dir: Path,
-                   prefix: str,
-                   target_date: str,
-                   report_df: pd.DataFrame,
-                   meta: Dict[str, object],
-                   top_n: int) -> None:
-    out_csv = work_dir / f"anomalies_{prefix}_{target_date}.csv"
-    out_json = work_dir / f"anomalies_{prefix}_{target_date}_meta.json"
+def _write_outputs(
+    work_dir: Path,
+    prefix: str,
+    target_date: str,
+    report_df: pd.DataFrame,
+    meta: Dict[str, object],
+    top_n: int,
+) -> None:
+    """Сохраняет CSV с топом аномалий и JSON с метаданными."""
+    out_csv: Path = work_dir / f"anomalies_{prefix}_{target_date}.csv"
+    out_json: Path = work_dir / f"anomalies_{prefix}_{target_date}_meta.json"
 
-    report_top = report_df.head(top_n).copy()
+    report_top: pd.DataFrame = report_df.head(top_n).copy()
     report_top.to_csv(out_csv, index=False)
 
     with out_json.open("w", encoding="utf-8") as f:
@@ -192,23 +206,26 @@ def _write_outputs(work_dir: Path,
     print(f"[+] Wrote: {out_json}")
 
 
-def run_one(work_dir: Path,
-            name: str,
-            in_file: str,
-            prefix: str,
-            target_date: Optional[str],
-            top_n: int,
-            contamination: float,
-            n_estimators: int,
-            max_samples: str,
-            n_neighbors: int,
-            random_state: int) -> None:
-    df = _load_features(work_dir / in_file, name)
-    tdate = _choose_target_date(df, target_date)
+def run_one(
+    work_dir: Path,
+    name: str,
+    in_file: str,
+    prefix: str,
+    target_date: Optional[str],
+    top_n: int,
+    contamination: float,
+    n_estimators: int,
+    max_samples: str | int,
+    n_neighbors: int,
+    random_state: int,
+) -> None:
+    """Полный цикл обучения и скоринга для одного типа сущности (users/hosts)."""
+    df: pd.DataFrame = _load_features(work_dir / in_file, name)
+    tdate: str = _choose_target_date(df, target_date)
     train_df, test_df = _split_train_test(df, tdate)
 
-    X_train_df, X_train, feature_cols = _prepare_matrix(train_df)
-    X_test_df, X_test, _ = _prepare_matrix(test_df)
+    _, X_train, feature_cols = _prepare_matrix(train_df)
+    _, X_test, _ = _prepare_matrix(test_df)
 
     models = _fit_models(
         X_train=X_train,
@@ -222,7 +239,7 @@ def run_one(work_dir: Path,
     iso_score, lof_score = _score(models, X_test)
     report = _build_report(test_df, iso_score, lof_score)
 
-    meta = {
+    meta: Dict[str, object] = {
         "entity_type": prefix,
         "target_date": tdate,
         "rows_train": int(len(train_df)),
@@ -258,15 +275,15 @@ def main() -> int:
     p.add_argument("--random-state", type=int, default=42, help="Random seed")
     args = p.parse_args()
 
-    work_dir = Path(args.work)
+    work_dir: Path = Path(args.work)
     if not work_dir.exists():
         raise FileNotFoundError(f"Work directory not found: {work_dir}")
 
-    # Validate contamination range
+    # Валидация диапазона contamination.
     if not (0.0 < args.contamination <= 0.5):
         raise ValueError("--contamination must be in (0, 0.5]")
 
-    # max_samples parsing
+    # Разбор параметра max_samples.
     max_samples: str | int
     if str(args.max_samples).lower() == "auto":
         max_samples = "auto"
