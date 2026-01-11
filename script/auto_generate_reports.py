@@ -14,6 +14,7 @@ auto_generate_reports.py
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -25,7 +26,7 @@ def _run_one(
     work: Path,
     scope: str,
     target: str,
-    top: int,
+    top_pct: float,
     contamination: float,
     n_estimators: int,
     n_neighbors: int,
@@ -48,8 +49,23 @@ def _run_one(
         su.to_csv(out / f"day_scores_users_{target}.csv", index=False)
         sh.to_csv(out / f"day_scores_hosts_{target}.csv", index=False)
 
-        core.save_top_bar(out, su, f"TOP {top} users anomalies for {target}", f"top_users_{target}.png", top)
-        core.save_top_bar(out, sh, f"TOP {top} hosts anomalies for {target}", f"top_hosts_{target}.png", top)
+        top_users = max(1, math.ceil(top_pct * len(su)))
+        top_hosts = max(1, math.ceil(top_pct * len(sh)))
+        pct_label = int(top_pct * 100)
+        core.save_top_bar(
+            out,
+            su,
+            f"TOP {pct_label}% users anomalies for {target} (n={top_users})",
+            f"top_users_{target}.png",
+            top_users,
+        )
+        core.save_top_bar(
+            out,
+            sh,
+            f"TOP {pct_label}% hosts anomalies for {target} (n={top_hosts})",
+            f"top_hosts_{target}.png",
+            top_hosts,
+        )
         core.save_severity_pie(out, su, f"Users severity {target}", f"severity_users_{target}.png")
         core.save_severity_pie(out, sh, f"Hosts severity {target}", f"severity_hosts_{target}.png")
         return out
@@ -82,7 +98,7 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
     p.add_argument("--date", default=None, help="Target/end date YYYY-MM-DD (default: latest)")
-    p.add_argument("--top", type=int, default=20)
+    p.add_argument("--top-pct", type=float, default=0.05, help="Top share for users/hosts (e.g., 0.05 = 5%)")
     p.add_argument("--contamination", type=float, default=0.05)
     p.add_argument("--n-estimators", type=int, default=300)
     p.add_argument("--n-neighbors", type=int, default=20)
@@ -96,11 +112,38 @@ def main() -> int:
     target: str = args.date or core.pick_latest_date(users, hosts)
     target = str(pd.to_datetime(target, errors="raise").date())
 
-    out_day = _run_one(work, "day", target, args.top, args.contamination, args.n_estimators, args.n_neighbors, args.random_state)
+    out_day = _run_one(
+        work,
+        "day",
+        target,
+        args.top_pct,
+        args.contamination,
+        args.n_estimators,
+        args.n_neighbors,
+        args.random_state,
+    )
     print(f"[+] day: {out_day}")
-    out_week = _run_one(work, "week", target, args.top, args.contamination, args.n_estimators, args.n_neighbors, args.random_state)
+    out_week = _run_one(
+        work,
+        "week",
+        target,
+        args.top_pct,
+        args.contamination,
+        args.n_estimators,
+        args.n_neighbors,
+        args.random_state,
+    )
     print(f"[+] week: {out_week}")
-    out_month = _run_one(work, "month", target, args.top, args.contamination, args.n_estimators, args.n_neighbors, args.random_state)
+    out_month = _run_one(
+        work,
+        "month",
+        target,
+        args.top_pct,
+        args.contamination,
+        args.n_estimators,
+        args.n_neighbors,
+        args.random_state,
+    )
     print(f"[+] month: {out_month}")
     return 0
 

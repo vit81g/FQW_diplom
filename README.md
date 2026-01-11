@@ -25,6 +25,7 @@
 /script/readme.md           — подробная документация по каждому скрипту
 /script/data/               — входные выгрузки SIEM (TSV/TXT)
 /script/work/               — рабочие результаты и отчёты
+/screens/                  — скриншоты и иллюстрации к отчётам
 ```
 
 ## Краткий конвейер обработки
@@ -43,7 +44,7 @@ python build_features_v2.py --work ./work
 python preprocess_features.py --work ./work
 python train_anomaly_models.py --work ./work
 python explain_anomalies.py --work ./work
-python visualize_reports.py --work ./work --scope day --top 20
+python visualize_reports.py --work ./work --scope day --top-pct 0.05
 ```
 
 ## Зависимости
@@ -67,9 +68,9 @@ pip install -U pandas numpy scikit-learn matplotlib
 ## Результаты работы
 - Таблицы аномалий для пользователей и хостов.
 - Объяснения ключевых факторов отклонения.
+- Рекомендации для аналитика SOC по причинам аномалий.
 - Визуальные отчёты (гистограммы, тренды, распределение серьёзности).
 
 ## Автор и научный руководитель
 **Автор:** В. С. Новиков  
 **Научный руководитель** Д. В. Смирнов
-

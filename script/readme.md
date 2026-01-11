@@ -1,5 +1,8 @@
 # Документация по скриптам
 
+> Дополнительно для каждого скрипта есть отдельный файл `name_script.md`
+> с описанием функций, переменных, входов и выходов.
+
 ## Общие зависимости
 
 Установите библиотеки (пример для Windows/PowerShell или cmd):
@@ -83,7 +86,8 @@ python train_anomaly_models.py --work ./work --date 2025-12-17 --top 30
 **Назначение:**
 - для каждой аномалии определяет 3–5 признаков с наибольшим отклонением от исторической базы;
 - присваивает уровень серьёзности по рангу внутри дня;
-- сохраняет отчёты для users, hosts и общий файл.
+- сохраняет отчёты для users, hosts и общий файл;
+- формирует отдельный файл с краткими причинами и рекомендациями для SOC-аналитика.
 
 **Запуск:**
 ```bash
@@ -101,7 +105,7 @@ python explain_anomalies.py --work ./work
 
 **Запуск:**
 ```bash
-python visualize_reports.py --work ./work --scope day --top 20
+python visualize_reports.py --work ./work --scope day --top-pct 0.05
 python visualize_reports.py --work ./work --scope week --date 2025-12-31
 python visualize_reports.py --work ./work --scope month
 ```
@@ -117,6 +121,8 @@ python visualize_reports.py --work ./work --scope month
 **Запуск:**
 ```bash
 python auto_generate_reports.py --work ./work
+# или с долей top-аномалий
+python auto_generate_reports.py --work ./work --top-pct 0.05
 ```
 
 ---

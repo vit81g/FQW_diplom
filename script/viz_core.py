@@ -44,6 +44,13 @@ SEV_RU: dict[str, str] = {
     "low": "Низкий",
 }
 
+SEV_COLORS: dict[str, str] = {
+    "critical": "#d62728",  # red
+    "high": "#ff7f0e",      # orange
+    "medium": "#bcbd22",    # olive
+    "low": "#1f77b4",       # blue
+}
+
 
 def ensure_dir(p: Path) -> Path:
     """Создаёт директорию, если её нет."""
@@ -256,8 +263,9 @@ def save_severity_pie(out_dir: Path, scores: pd.DataFrame, title: str, filename:
     if counts.empty:
         return
     labels: list[str] = [SEV_RU.get(k, k) for k in counts.index.tolist()]
+    colors: list[str] = [SEV_COLORS.get(k, "#cccccc") for k in counts.index.tolist()]
     plt.figure()
-    plt.pie(counts.to_numpy(), labels=labels, autopct="%1.1f%%")
+    plt.pie(counts.to_numpy(), labels=labels, autopct="%1.1f%%", colors=colors)
     plt.title(title)
     plt.tight_layout()
     plt.savefig(out_dir / filename, dpi=160)
@@ -271,7 +279,11 @@ def save_trend_line(out_dir: Path, trend: pd.DataFrame, title: str, filename: st
     plt.figure()
     x: pd.Series = pd.to_datetime(trend["date"], errors="coerce")
     y: pd.Series = pd.to_numeric(trend[ycol], errors="coerce").fillna(0)
-    plt.plot(x, y, marker="o")
+    color = SEV_COLORS.get(ycol)
+    if color:
+        plt.plot(x, y, marker="o", color=color)
+    else:
+        plt.plot(x, y, marker="o")
     plt.ylabel(ycol)
     plt.title(title)
     plt.xticks(rotation=45)
@@ -295,7 +307,7 @@ def save_trend_stacked(out_dir: Path, trend: pd.DataFrame, title: str, filename:
     plt.figure()
     bottom: np.ndarray = np.zeros(len(df))
     for c, v in zip(sev_cols, vals):
-        plt.bar(x, v, bottom=bottom, label=SEV_RU.get(c, c))
+        plt.bar(x, v, bottom=bottom, label=SEV_RU.get(c, c), color=SEV_COLORS.get(c, "#cccccc"))
         bottom = bottom + v
 
     plt.xticks(rotation=45)
