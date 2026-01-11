@@ -7,7 +7,7 @@ CLI-инструмент для генерации графиков аномал
 Графики сохраняются в: work/reports/<scope>_<date>/
 
 Примеры:
-  python visualize_reports.py --work .\\work --scope day --top 20
+  python visualize_reports.py --work .\\work --scope day --top-pct 0.05
   python visualize_reports.py --work .\\work --scope week --date 2025-12-31
   python visualize_reports.py --work .\\work --scope month
 """
@@ -15,6 +15,7 @@ CLI-инструмент для генерации графиков аномал
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import Optional
 
@@ -27,7 +28,7 @@ def run(
     work: Path,
     scope: str,
     date: Optional[str],
-    top: int,
+    top_pct: float,
     contamination: float,
     n_estimators: int,
     n_neighbors: int,
@@ -54,8 +55,23 @@ def run(
         su.to_csv(out / f"day_scores_users_{target}.csv", index=False)
         sh.to_csv(out / f"day_scores_hosts_{target}.csv", index=False)
 
-        core.save_top_bar(out, su, f"TOP {top} users anomalies for {target}", f"top_users_{target}.png", top)
-        core.save_top_bar(out, sh, f"TOP {top} hosts anomalies for {target}", f"top_hosts_{target}.png", top)
+        top_users = max(1, math.ceil(top_pct * len(su)))
+        top_hosts = max(1, math.ceil(top_pct * len(sh)))
+        pct_label = int(top_pct * 100)
+        core.save_top_bar(
+            out,
+            su,
+            f"TOP {pct_label}% users anomalies for {target} (n={top_users})",
+            f"top_users_{target}.png",
+            top_users,
+        )
+        core.save_top_bar(
+            out,
+            sh,
+            f"TOP {pct_label}% hosts anomalies for {target} (n={top_hosts})",
+            f"top_hosts_{target}.png",
+            top_hosts,
+        )
         core.save_severity_pie(out, su, f"Users severity {target}", f"severity_users_{target}.png")
         core.save_severity_pie(out, sh, f"Hosts severity {target}", f"severity_hosts_{target}.png")
         return out
@@ -92,7 +108,7 @@ def main() -> int:
     p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
     p.add_argument("--scope", required=True, choices=["day", "week", "month"])
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (optional)")
-    p.add_argument("--top", type=int, default=20)
+    p.add_argument("--top-pct", type=float, default=0.05, help="Top share for users/hosts (e.g., 0.05 = 5%)")
     p.add_argument("--contamination", type=float, default=0.05)
     p.add_argument("--n-estimators", type=int, default=300)
     p.add_argument("--n-neighbors", type=int, default=20)
@@ -103,7 +119,7 @@ def main() -> int:
         Path(args.work),
         args.scope,
         args.date,
-        args.top,
+        args.top_pct,
         args.contamination,
         args.n_estimators,
         args.n_neighbors,
