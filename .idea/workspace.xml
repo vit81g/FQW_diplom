@@ -4,28 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e554abce-d3dc-43f7-b015-f112669f5253" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_all_2025-12-31_explain.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31_explain.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31_meta.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31_explain.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31_meta.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/features_hosts.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/features_hosts_clean.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/features_users.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/features_users_clean.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/day_scores_hosts_2025-12-31.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/day_scores_users_2025-12-31.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/severity_hosts_2025-12-31.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/severity_users_2025-12-31.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/top_hosts_2025-12-31.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/top_users_2025-12-31.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/soc_recommendations_2025-12-31.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/work/soc_recommendations_2025-12-31.md" beforeDir="false" />
-    </list>
+    <list default="true" id="e554abce-d3dc-43f7-b015-f112669f5253" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
