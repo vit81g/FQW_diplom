@@ -419,7 +419,9 @@ def normalize_file(
 
 def write_user_mapping(work_dir: Path, user_map: Dict[str, str]) -> Path:
     """Сохраняет таблицу соответствия реальный пользователь -> alias."""
+    # Формируем путь к итоговому файлу.
     out = work_dir / "user_mapping.csv"
+    # Сортируем пары по alias, чтобы результат был стабильным.
     rows = sorted(user_map.items(), key=lambda x: x[1])
     with out.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -431,6 +433,7 @@ def write_user_mapping(work_dir: Path, user_map: Dict[str, str]) -> Path:
 
 def iter_input_files(data_dir: Path) -> List[Path]:
     """Возвращает список входных TSV/TXT файлов в папке data."""
+    # Собираем все TSV/TXT файлы и сортируем для стабильности.
     files: List[Path] = []
     for ext in ("*.tsv", "*.txt"):
         files.extend(sorted(data_dir.glob(ext)))
@@ -438,28 +441,37 @@ def iter_input_files(data_dir: Path) -> List[Path]:
 
 
 def main() -> int:
+    # Настраиваем аргументы CLI.
     p = argparse.ArgumentParser(description="Normalize SIEM TSV exports for ML analysis.")
     p.add_argument("--data", type=Path, default=None, help="Input folder with TSV files (default: ./data)")
     p.add_argument("--work", type=Path, default=None, help="Output folder (default: ./work)")
     p.add_argument("--chunksize", type=int, default=200_000, help="Read chunksize for large TSV files.")
+    # Читаем аргументы.
     args = p.parse_args()
 
+    # Определяем директории относительно скрипта.
     script_dir: Path = Path(__file__).resolve().parent
     data_dir: Path = args.data or (script_dir / "data")
     work_dir: Path = args.work or (script_dir / "work")
+    # Гарантируем, что папка вывода существует.
     work_dir.mkdir(parents=True, exist_ok=True)
 
+    # Ищем входные файлы.
     files = iter_input_files(data_dir)
     if not files:
         print(f"[!] No input files found in: {data_dir}")
         return 2
 
+    # Таблица соответствия пользователь -> alias.
     user_map: Dict[str, str] = {}
+    # Счётчик для генерации userXXX.
     next_user_index: int = 1
 
     for path in files:
+        # Определяем роль файла по имени.
         role: FileRole = detect_file_role(path.stem)
         print(f"[*] Processing: {path.name} (role={role.kind})")
+        # Нормализуем конкретный файл.
         next_user_index = normalize_file(
             path=path,
             data_role=role,
@@ -469,6 +481,7 @@ def main() -> int:
             chunksize=args.chunksize,
         )
 
+    # Сохраняем таблицу соответствия userXXX.
     mapping_path = write_user_mapping(work_dir, user_map)
     print(f"[+] Done. Output folder: {work_dir}")
     print(f"[+] User mapping: {mapping_path.name}")

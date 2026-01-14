@@ -48,8 +48,10 @@ ID_COLS: list[str] = ["entity", "date"]
 
 def _load_features(path: Path, name: str) -> pd.DataFrame:
     """Загружает таблицу признаков и нормализует колонку date."""
+    # Проверяем наличие файла.
     if not path.exists():
         raise FileNotFoundError(f"{name} features file not found: {path}")
+    # Читаем файл как строки, чтобы сохранить идентификаторы.
     df = pd.read_csv(path, dtype=str, keep_default_na=True)
     for c in ID_COLS:
         if c not in df.columns:
@@ -64,6 +66,7 @@ def _load_features(path: Path, name: str) -> pd.DataFrame:
 
 def _prepare_matrix(df: pd.DataFrame) -> Tuple[pd.DataFrame, np.ndarray, list[str]]:
     """Готовит матрицу признаков (numeric) и возвращает список колонок."""
+    # Отбираем все числовые признаки, кроме идентификаторов.
     feature_cols: list[str] = [c for c in df.columns if c not in ID_COLS]
     if not feature_cols:
         raise ValueError("No feature columns found (expected columns besides entity/date).")
@@ -89,9 +92,11 @@ def _choose_target_date(df: pd.DataFrame, target: Optional[str]) -> str:
 
 def _split_train_test(df: pd.DataFrame, target_date: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Разделяет данные на train/test по дате."""
+    # Отбираем строки для целевого дня.
     test_df: pd.DataFrame = df[df["date"] == target_date].copy()
     if test_df.empty:
         raise ValueError(f"No rows found for target date: {target_date}. Available dates: {sorted(df['date'].unique())[:10]} ...")
+    # Отбираем строки для обучения на остальных днях.
     train_df: pd.DataFrame = df[df["date"] != target_date].copy()
     if train_df.empty:
         # Если есть только один день, используем весь набор.
@@ -108,8 +113,10 @@ def _fit_models(
     random_state: int,
 ) -> Dict[str, object]:
     """Обучает IsolationForest и LOF (novelty) с робастным масштабированием."""
+    # Скейлер для устойчивости к выбросам.
     scaler: RobustScaler = RobustScaler(with_centering=True, with_scaling=True, unit_variance=False)
 
+    # Конфиг Isolation Forest.
     iso: IsolationForest = IsolationForest(
         n_estimators=n_estimators,
         contamination=contamination,
@@ -127,9 +134,11 @@ def _fit_models(
         p=2,
     )
 
+    # Создаём пайплайны.
     iso_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", iso)])
     lof_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", lof)])
 
+    # Обучаем модели.
     iso_pipe.fit(X_train)
     lof_pipe.fit(X_train)
 
@@ -138,6 +147,7 @@ def _fit_models(
 
 def _score(models: Dict[str, object], X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Считает аномальные скоры по двум моделям."""
+    # Извлекаем пайплайны.
     iso_pipe: Pipeline = models["iso"]
     lof_pipe: Pipeline = models["lof"]
 
@@ -154,6 +164,7 @@ def _score(models: Dict[str, object], X: np.ndarray) -> Tuple[np.ndarray, np.nda
 
 def _minmax(a: np.ndarray) -> np.ndarray:
     """Нормализация min-max."""
+    # Вычисляем границы для нормализации.
     amin: float = float(np.min(a))
     amax: float = float(np.max(a))
     if not np.isfinite(amin) or not np.isfinite(amax) or amax == amin:
@@ -167,11 +178,14 @@ def _build_report(
     lof_score: np.ndarray,
 ) -> pd.DataFrame:
     """Формирует итоговую таблицу скоринга и рангов."""
+    # Копируем идентификаторы сущности и даты.
     out: pd.DataFrame = test_df[ID_COLS].copy()
 
+    # Записываем исходные скоры.
     out["score_isolation_forest"] = iso_score
     out["score_lof"] = lof_score
 
+    # Нормализуем скоры и считаем комбинированный.
     out["score_isolation_forest_norm"] = _minmax(iso_score)
     out["score_lof_norm"] = _minmax(lof_score)
     out["score_combined_norm"] = (out["score_isolation_forest_norm"] + out["score_lof_norm"]) / 2.0
@@ -181,6 +195,7 @@ def _build_report(
     out["rank_lof"] = out["score_lof"].rank(ascending=False, method="average")
     out["rank_combined"] = (out["rank_isolation_forest"] + out["rank_lof"]) / 2.0
 
+    # Сортируем по уровню аномальности.
     out = out.sort_values(["rank_combined", "rank_isolation_forest", "rank_lof"]).reset_index(drop=True)
     return out
 
@@ -194,16 +209,20 @@ def _write_outputs(
     top_n: int,
 ) -> None:
     """Сохраняет CSV с топом аномалий и JSON с метаданными."""
+    # Гарантируем наличие выходной директории.
     out_dir.mkdir(parents=True, exist_ok=True)
     out_csv: Path = out_dir / f"anomalies_{prefix}_{target_date}.csv"
     out_json: Path = out_dir / f"anomalies_{prefix}_{target_date}_meta.json"
 
+    # Берём только TOP-N строк и сохраняем CSV.
     report_top: pd.DataFrame = report_df.head(top_n).copy()
     report_top.to_csv(out_csv, index=False)
 
+    # Записываем метаданные в JSON.
     with out_json.open("w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
 
+    # Печатаем итоговые пути.
     print(f"[+] Wrote: {out_csv} (top={len(report_top)})")
     print(f"[+] Wrote: {out_json}")
 
@@ -223,13 +242,18 @@ def run_one(
     random_state: int,
 ) -> None:
     """Полный цикл обучения и скоринга для одного типа сущности (users/hosts)."""
+    # Загружаем таблицу признаков.
     df: pd.DataFrame = _load_features(work_dir / in_file, name)
+    # Определяем целевую дату.
     tdate: str = _choose_target_date(df, target_date)
+    # Разделяем выборки на train/test.
     train_df, test_df = _split_train_test(df, tdate)
 
+    # Преобразуем train/test в матрицы признаков.
     _, X_train, feature_cols = _prepare_matrix(train_df)
     _, X_test, _ = _prepare_matrix(test_df)
 
+    # Обучаем модели на тренировочных данных.
     models = _fit_models(
         X_train=X_train,
         contamination=contamination,
@@ -239,9 +263,11 @@ def run_one(
         random_state=random_state,
     )
 
+    # Считаем скоры и формируем отчёт.
     iso_score, lof_score = _score(models, X_test)
     report = _build_report(test_df, iso_score, lof_score)
 
+    # Готовим метаданные для JSON.
     meta: Dict[str, object] = {
         "entity_type": prefix,
         "target_date": tdate,
@@ -263,10 +289,12 @@ def run_one(
         },
     }
 
+    # Сохраняем результаты.
     _write_outputs(out_dir, prefix, tdate, report, meta, top_n)
 
 
 def main() -> int:
+    # Описываем CLI-аргументы.
     p = argparse.ArgumentParser()
     p.add_argument("--work", default="features", help="Path to features directory (default: features)")
     p.add_argument("--out-dir", default=None, help="Output folder for anomalies (default: features dir)")
@@ -277,8 +305,10 @@ def main() -> int:
     p.add_argument("--max-samples", default="auto", help="Isolation Forest: max_samples (auto or int)")
     p.add_argument("--n-neighbors", type=int, default=20, help="LOF: n_neighbors (typical 10-30)")
     p.add_argument("--random-state", type=int, default=42, help="Random seed")
+    # Парсим аргументы.
     args = p.parse_args()
 
+    # Определяем директории входа/выхода.
     work_dir: Path = Path(args.work)
     out_dir: Path = Path(args.out_dir) if args.out_dir else work_dir
     if not out_dir.is_absolute():
@@ -300,6 +330,7 @@ def main() -> int:
         except Exception as e:
             raise ValueError("--max-samples must be 'auto' or an integer") from e
 
+    # Обрабатываем пользователей.
     run_one(
         work_dir=work_dir,
         out_dir=out_dir,
@@ -315,6 +346,7 @@ def main() -> int:
         random_state=args.random_state,
     )
 
+    # Обрабатываем хосты.
     run_one(
         work_dir=work_dir,
         out_dir=out_dir,
@@ -330,6 +362,7 @@ def main() -> int:
         random_state=args.random_state,
     )
 
+    # Сообщаем об успешном завершении.
     print("[*] Done.")
     return 0
 

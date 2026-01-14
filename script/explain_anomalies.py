@@ -41,11 +41,13 @@ DATE_RE = re.compile(r"anomalies_(users|hosts)_(\d{4}-\d{2}-\d{2})\.csv$", re.IG
 
 def _read_csv(path: Path, dtype=str) -> pd.DataFrame:
     """Универсальная обёртка над pd.read_csv."""
+    # Читаем CSV с указанным типом данных.
     return pd.read_csv(path, dtype=dtype, keep_default_na=True)
 
 
 def _pick_date_from_anomaly_dir(anomaly_dir: Path) -> str:
     """Выбирает последнюю дату по файлам anomalies_users_* и anomalies_hosts_*."""
+    # Собираем все даты из имён файлов.
     dates: List[str] = []
     for p in anomaly_dir.glob("anomalies_*_*.csv"):
         m = DATE_RE.match(p.name)
@@ -73,8 +75,10 @@ def _robust_z(x: float, med: float, mad: float, fallback_std: float) -> float:
 
 def _baseline_stats(train_df: pd.DataFrame, feature_cols: List[str]) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Возвращает (median_df, mad_df, std_df), индексированный по entity."""
+    # Группируем по сущности.
     g = train_df.groupby("entity", dropna=False)
 
+    # Считаем медианы, MAD и стандартное отклонение.
     med = g[feature_cols].median(numeric_only=True)
     # MAD: медиана |x - median|.
     mad = g[feature_cols].apply(lambda x: (x - x.median(numeric_only=True)).abs().median(numeric_only=True))
@@ -118,9 +122,12 @@ def _severity_by_rank(df_day: pd.DataFrame) -> pd.Series:
 
 def _coerce_features(df: pd.DataFrame, feature_cols: List[str]) -> pd.DataFrame:
     """Приводит признаки к числовому типу и заполняет NaN нулями."""
+    # Создаём копию, чтобы не менять исходный DataFrame.
     df = df.copy()
     for c in feature_cols:
+        # Переводим признаки в числа.
         df[c] = pd.to_numeric(df[c], errors="coerce")
+    # Заполняем пропуски нулями.
     df[feature_cols] = df[feature_cols].fillna(0)
     return df
 
@@ -134,6 +141,7 @@ def _explain_one_kind(
     top_k: int,
 ) -> pd.DataFrame:
     """Строит объяснения для users или hosts на выбранную дату."""
+    # Нормализуем параметр kind.
     kind = kind.lower()
     if kind not in {"users", "hosts"}:
         raise ValueError("kind must be 'users' or 'hosts'")
@@ -141,11 +149,13 @@ def _explain_one_kind(
     feats_file = work_dir / f"features_{kind}_clean.csv"
     anom_file = anomaly_dir / f"anomalies_{kind}_{target_date}.csv"
 
+    # Проверяем наличие входных файлов.
     if not feats_file.exists():
         raise FileNotFoundError(f"Missing features file: {feats_file}")
     if not anom_file.exists():
         raise FileNotFoundError(f"Missing anomalies file: {anom_file}")
 
+    # Загружаем исходные признаки и список аномалий.
     feats: pd.DataFrame = _read_csv(feats_file, dtype=str)
     anom: pd.DataFrame = _read_csv(anom_file, dtype=str)
 
@@ -158,6 +168,7 @@ def _explain_one_kind(
     if not feature_cols:
         raise ValueError(f"No feature columns detected in {feats_file.name}")
 
+    # Приводим признаки к числам.
     feats = _coerce_features(feats, feature_cols)
 
     # Строим базовую линию по всем дням, кроме целевого.
@@ -165,6 +176,7 @@ def _explain_one_kind(
     if train.empty:
         train = feats.copy()
 
+    # Считаем статистики базовой линии.
     med_df, mad_df, std_df = _baseline_stats(train, feature_cols)
 
     # Отбираем строки за день и объединяем с таблицей аномалий.
@@ -172,6 +184,7 @@ def _explain_one_kind(
     if day.empty:
         raise ValueError(f"{kind}: no feature rows for date {target_date} in {feats_file.name}")
 
+    # Объединяем признаки и список аномалий.
     merged: pd.DataFrame = day.merge(anom, on=["entity", "date"], how="inner", suffixes=("", "_anom"))
     if merged.empty:
         # Если в anomalies меньше сущностей, чем в дневной выборке, это нормально.
@@ -187,6 +200,7 @@ def _explain_one_kind(
     contrib_rows: List[Dict[str, object]] = []
 
     for _, row in merged.iterrows():
+        # Берём идентификатор сущности.
         ent = row["entity"]
         # Если сущность не встречалась в train, используем глобальную базовую линию.
         if ent in med_df.index:
@@ -200,6 +214,7 @@ def _explain_one_kind(
 
         z_list: list[tuple[str, float, float, float]] = []
         for c in feature_cols:
+            # Берём значение признака, рассчитываем z-score.
             x = float(row[c]) if pd.notna(row[c]) else 0.0
             z = _robust_z(x, float(med.get(c, 0.0)), float(mad.get(c, 0.0)), float(std.get(c, 0.0)))
             z_list.append((c, z, x, float(med.get(c, 0.0))))
@@ -238,6 +253,7 @@ def _explain_one_kind(
 
         contrib_rows.append(out)
 
+    # Формируем итоговую таблицу объяснений.
     report: pd.DataFrame = pd.DataFrame(contrib_rows)
 
     # Стабилизируем порядок колонок.
@@ -258,6 +274,7 @@ def _explain_one_kind(
             cols.append(c)
     report = report[cols].sort_values(["severity", "rank_combined"], ascending=[True, True], kind="mergesort")
 
+    # Сохраняем результаты.
     out_file: Path = anomaly_dir / f"anomalies_{kind}_{target_date}_explain.csv"
     report.to_csv(out_file, index=False)
     print(f"[+] Wrote: {out_file} (rows={len(report)})")
@@ -265,13 +282,16 @@ def _explain_one_kind(
 
 
 def main() -> int:
+    # Конфигурируем CLI-аргументы.
     p = argparse.ArgumentParser()
     p.add_argument("--work", default="features", help="Features directory (default: features)")
     p.add_argument("--anomaly-dir", default=None, help="Folder with anomaly CSVs (default: features dir)")
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (default: latest anomalies_* date)")
     p.add_argument("--top-features", type=int, default=5, help="How many top deviating features to include (3-5 typical)")
+    # Парсим аргументы.
     args = p.parse_args()
 
+    # Проверяем входные директории.
     work_dir: Path = Path(args.work)
     if not work_dir.exists():
         raise FileNotFoundError(f"Work dir not found: {work_dir}")
@@ -282,6 +302,7 @@ def main() -> int:
     if not anomaly_dir.exists():
         raise FileNotFoundError(f"Anomaly dir not found: {anomaly_dir}")
 
+    # Выбираем целевую дату.
     target_date: str = args.date or _pick_date_from_anomaly_dir(anomaly_dir)
     target_date = str(pd.to_datetime(target_date, errors="raise").date())
 
@@ -289,11 +310,14 @@ def main() -> int:
     if k < 1 or k > 10:
         raise ValueError("--top-features must be between 1 and 10")
 
+    # Формируем отчёт для пользователей и хостов.
     users: pd.DataFrame = _explain_one_kind(work_dir, anomaly_dir, "users", target_date, k)
     hosts: pd.DataFrame = _explain_one_kind(work_dir, anomaly_dir, "hosts", target_date, k)
 
+    # Объединяем результаты.
     all_df: pd.DataFrame = pd.concat([users, hosts], ignore_index=True)
     out_all: Path = anomaly_dir / f"anomalies_all_{target_date}_explain.csv"
+    # Сохраняем общий файл.
     all_df.to_csv(out_all, index=False)
     print(f"[+] Wrote: {out_all} (rows={len(all_df)})")
     print("[*] Done.")

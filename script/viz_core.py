@@ -54,37 +54,46 @@ SEV_COLORS: dict[str, str] = {
 
 def ensure_dir(p: Path) -> Path:
     """Создаёт директорию, если её нет."""
+    # Создаём папку и всех родителей.
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
 def load_features(work_dir: Path, kind: str) -> pd.DataFrame:
     """Загружает подготовленные признаки users/hosts и приводит к числовым типам."""
+    # Формируем путь к файлу.
     p = work_dir / f"features_{kind}_clean.csv"
     if not p.exists():
         raise FileNotFoundError(
             f"Missing {p}. Expected outputs of preprocess_features.py in features dir."
         )
+    # Читаем CSV как строки.
     df: pd.DataFrame = pd.read_csv(p, dtype=str, keep_default_na=True)
     for c in ID_COLS:
         if c not in df.columns:
             raise ValueError(f"{p.name}: missing required column: {c}")
 
+    # Приводим дату к стандартизированному виду.
     df["date"] = pd.to_datetime(df["date"], errors="coerce").dt.date.astype("string")
 
+    # Определяем список колонок с признаками.
     feat_cols: list[str] = [c for c in df.columns if c not in ID_COLS]
     if not feat_cols:
         raise ValueError(f"{p.name}: no feature columns found")
 
+    # Переводим признаки в числовой тип.
     for c in feat_cols:
         df[c] = pd.to_numeric(df[c], errors="coerce")
+    # Заполняем пропуски нулями.
     df[feat_cols] = df[feat_cols].fillna(0)
     return df
 
 
 def available_dates(df_users: pd.DataFrame, df_hosts: pd.DataFrame) -> List[str]:
     """Возвращает список уникальных дат, отсортированный по возрастанию."""
+    # Собираем все даты из двух таблиц.
     d: pd.Series = pd.concat([df_users["date"], df_hosts["date"]], ignore_index=True)
+    # Нормализуем к дате, отбрасываем NaN и сортируем.
     d = pd.to_datetime(d, errors="coerce").dropna().dt.date.astype("string").unique().tolist()
     return sorted(d)
 
@@ -99,10 +108,12 @@ def pick_latest_date(df_users: pd.DataFrame, df_hosts: pd.DataFrame) -> str:
 
 def minmax(a: np.ndarray) -> np.ndarray:
     """Min-max нормализация массива."""
+    # Вычисляем диапазон значений.
     amin: float = float(np.min(a))
     amax: float = float(np.max(a))
     if not np.isfinite(amin) or not np.isfinite(amax) or amax == amin:
         return np.zeros_like(a, dtype=float)
+    # Приводим к интервалу [0, 1].
     return (a - amin) / (amax - amin)
 
 
@@ -119,6 +130,7 @@ def severity_by_rank(n: int, ranks: np.ndarray) -> List[str]:
     thr_high: int = max(thr_crit, math.ceil(0.20 * n))
     thr_med: int = max(thr_high, math.ceil(0.50 * n))
 
+    # Проставляем уровни по рангу.
     out: List[str] = []
     for r in ranks:
         if r <= thr_crit:
@@ -140,8 +152,10 @@ def fit_models(
     random_state: int,
 ) -> Dict[str, object]:
     """Обучает Isolation Forest и LOF (novelty) для заданной выборки."""
+    # Скейлер для устойчивости к выбросам.
     scaler: RobustScaler = RobustScaler(with_centering=True, with_scaling=True, unit_variance=False)
 
+    # Конфигурация Isolation Forest.
     iso: IsolationForest = IsolationForest(
         n_estimators=n_estimators,
         contamination=contamination,
@@ -157,6 +171,7 @@ def fit_models(
         p=2,
     )
 
+    # Создаём пайплайны и обучаем.
     iso_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", iso)])
     lof_pipe: Pipeline = Pipeline([("scaler", scaler), ("model", lof)])
 
@@ -174,12 +189,15 @@ def score_day(
     random_state: int,
 ) -> pd.DataFrame:
     """Считает скоринг аномалий для заданного дня."""
+    # Собираем список признаков.
     feat_cols: list[str] = [c for c in df.columns if c not in ID_COLS]
 
+    # Выделяем тестовую часть по заданной дате.
     test: pd.DataFrame = df[df["date"] == day].copy()
     if test.empty:
         raise ValueError(f"No rows for date={day}")
 
+    # Обучение на остальных днях (или на всех, если других нет).
     train: pd.DataFrame = df[df["date"] != day].copy()
     if train.empty:
         train = df.copy()
@@ -193,6 +211,7 @@ def score_day(
     iso_s = -models["iso"].decision_function(X_test)
     lof_s = -models["lof"].decision_function(X_test)
 
+    # Формируем таблицу результатов.
     out: pd.DataFrame = test[ID_COLS].copy()
     out["score_iso"] = iso_s
     out["score_lof"] = lof_s
@@ -213,10 +232,14 @@ def build_trend(
     random_state: int,
 ) -> pd.DataFrame:
     """Строит тренд по датам: распределение по severity и топ сущности."""
+    # Контейнер для агрегированных строк по дням.
     rows: list[dict[str, object]] = []
     for day in dates:
+        # Считаем скоринг на конкретный день.
         s: pd.DataFrame = score_day(df, day, contamination, n_estimators, n_neighbors, random_state)
+        # Считаем распределение по уровням серьёзности.
         counts: dict[str, int] = s["severity"].value_counts().to_dict()
+        # Ищем самую аномальную сущность.
         top1: pd.DataFrame = s.sort_values("rank_combined").head(1)
         rows.append(
             {
@@ -234,6 +257,7 @@ def build_trend(
                 else 0.0,
             }
         )
+    # Возвращаем DataFrame со строками по дням.
     return pd.DataFrame(rows)
 
 
@@ -241,9 +265,11 @@ def build_trend(
 
 def save_top_bar(out_dir: Path, scores: pd.DataFrame, title: str, filename: str, top: int) -> None:
     """Строит столбчатый график top-N аномалий."""
+    # Сортируем по рангу и берём top-N.
     df: pd.DataFrame = scores.sort_values("rank_combined").head(top).copy()
     if df.empty:
         return
+    # Строим график.
     plt.figure()
     plt.bar(
         df["entity"].astype(str),
@@ -259,11 +285,14 @@ def save_top_bar(out_dir: Path, scores: pd.DataFrame, title: str, filename: str,
 
 def save_severity_pie(out_dir: Path, scores: pd.DataFrame, title: str, filename: str) -> None:
     """Строит pie-график распределения по severity."""
+    # Считаем распределение по уровням серьёзности.
     counts: pd.Series = scores["severity"].value_counts()
     if counts.empty:
         return
+    # Готовим подписи и цвета.
     labels: list[str] = [SEV_RU.get(k, k) for k in counts.index.tolist()]
     colors: list[str] = [SEV_COLORS.get(k, "#cccccc") for k in counts.index.tolist()]
+    # Рисуем круговую диаграмму.
     plt.figure()
     plt.pie(counts.to_numpy(), labels=labels, autopct="%1.1f%%", colors=colors)
     plt.title(title)
@@ -274,12 +303,15 @@ def save_severity_pie(out_dir: Path, scores: pd.DataFrame, title: str, filename:
 
 def save_trend_line(out_dir: Path, trend: pd.DataFrame, title: str, filename: str, ycol: str) -> None:
     """Линейный график тренда по выбранной метрике."""
+    # Проверяем, что данные доступны.
     if trend.empty or ycol not in trend.columns:
         return
+    # Подготавливаем оси.
     plt.figure()
     x: pd.Series = pd.to_datetime(trend["date"], errors="coerce")
     y: pd.Series = pd.to_numeric(trend[ycol], errors="coerce").fillna(0)
     color = SEV_COLORS.get(ycol)
+    # Рисуем линию с маркерами.
     if color:
         plt.plot(x, y, marker="o", color=color)
     else:
@@ -294,16 +326,20 @@ def save_trend_line(out_dir: Path, trend: pd.DataFrame, title: str, filename: st
 
 def save_trend_stacked(out_dir: Path, trend: pd.DataFrame, title: str, filename: str) -> None:
     """Stacked bar для распределения severity по дням."""
+    # Проверяем, что есть данные.
     if trend.empty:
         return
+    # Сортируем по дате и готовим подписи.
     df: pd.DataFrame = trend.copy()
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.sort_values("date")
     x: list[str] = df["date"].dt.strftime("%Y-%m-%d").tolist()
 
+    # Готовим значения по уровням серьёзности.
     sev_cols: list[str] = ["critical", "high", "medium", "low"]
     vals: list[np.ndarray] = [pd.to_numeric(df[c], errors="coerce").fillna(0).to_numpy() for c in sev_cols]
 
+    # Рисуем stacked bar.
     plt.figure()
     bottom: np.ndarray = np.zeros(len(df))
     for c, v in zip(sev_cols, vals):
