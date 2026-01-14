@@ -38,6 +38,16 @@
 6. **Визуализация** (`visualize_reports.py` / `auto_generate_reports.py`) → графики (в `report`).
 7. **SOC-отчёт** (`soc_report.py`) → Markdown-отчёт с контекстом (в `report`, имя содержит дату/время).
 
+## Алгоритм и последовательность запуска
+Ниже приведена типовая последовательность, которую можно использовать как «шпаргалку»:
+1. Нормализовать выгрузки SIEM и получить суточные CSV.
+2. Построить признаки по пользователям и хостам.
+3. Очистить признаки (удаление пропусков, приведение типов).
+4. Обучить модели аномалий и получить список аномалий за выбранные даты.
+5. Сформировать объяснения (человеко-читаемые причины).
+6. Построить визуальные отчёты.
+7. Сформировать SOC-отчёт с контекстом (действия, ПО, события, сеть, аномальное время).
+
 ## Быстрый старт (пример)
 ```bash
 cd script
@@ -48,6 +58,25 @@ python train_anomaly_models.py --work ./features
 python explain_anomalies.py --work ./features
 python visualize_reports.py --work ./features --scope day --top-pct 0.05
 python soc_report.py --work ./work --features-dir ./features --scope day
+```
+
+## Примеры запуска отчётов по периоду
+### За конкретный день
+```bash
+cd script
+python soc_report.py --work ./work --features-dir ./features --scope day --date 2025-12-31
+```
+
+### За конкретную неделю (7 дней до указанной даты включительно)
+```bash
+cd script
+python soc_report.py --work ./work --features-dir ./features --scope week --date 2025-12-31
+```
+
+### За конкретный месяц (30 дней до указанной даты включительно)
+```bash
+cd script
+python soc_report.py --work ./work --features-dir ./features --scope month --date 2025-12-31
 ```
 
 ## Зависимости
