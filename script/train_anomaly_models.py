@@ -6,11 +6,11 @@ train_anomaly_models.py
 Обучение и скоринг детекторов аномалий (Isolation Forest + LOF) на дневных таблицах признаков.
 Экспортирует TOP-N аномалий для выбранной даты (по умолчанию — последняя дата в датасете).
 
-Вход (work dir):
+Вход (features dir):
   - features_users_clean.csv
   - features_hosts_clean.csv
 
-Выход (anomaly dir):
+Выход (features dir):
   - anomalies_users_YYYY-MM-DD.csv
   - anomalies_hosts_YYYY-MM-DD.csv
   - anomalies_users_YYYY-MM-DD_meta.json
@@ -22,9 +22,9 @@ train_anomaly_models.py
 - LOF используется в режиме novelty для скоринга новых наблюдений.
 
 Запуск:
-  python train_anomaly_models.py --work .\\work
-  python train_anomaly_models.py --work .\\work --date 2025-12-17 --top 30
-  python train_anomaly_models.py --work .\\work --out-dir .\\anomaly
+  python train_anomaly_models.py --work .\\features
+  python train_anomaly_models.py --work .\\features --date 2025-12-17 --top 30
+  python train_anomaly_models.py --work .\\features --out-dir .\\features
 """
 
 from __future__ import annotations
@@ -268,8 +268,8 @@ def run_one(
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--work", required=True, help="Path to work directory")
-    p.add_argument("--out-dir", default="anomaly", help="Output folder for anomalies (default: anomaly)")
+    p.add_argument("--work", default="features", help="Path to features directory (default: features)")
+    p.add_argument("--out-dir", default=None, help="Output folder for anomalies (default: features dir)")
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (default: latest in dataset)")
     p.add_argument("--top", type=int, default=30, help="TOP-N anomalies to export per entity type")
     p.add_argument("--contamination", type=float, default=0.05, help="Expected anomaly fraction (0..0.5). Used by IF/LOF.")
@@ -280,7 +280,7 @@ def main() -> int:
     args = p.parse_args()
 
     work_dir: Path = Path(args.work)
-    out_dir: Path = Path(args.out_dir)
+    out_dir: Path = Path(args.out_dir) if args.out_dir else work_dir
     if not out_dir.is_absolute():
         out_dir = work_dir / out_dir
     if not work_dir.exists():

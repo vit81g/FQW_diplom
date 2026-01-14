@@ -63,7 +63,7 @@ def load_features(work_dir: Path, kind: str) -> pd.DataFrame:
     p = work_dir / f"features_{kind}_clean.csv"
     if not p.exists():
         raise FileNotFoundError(
-            f"Missing {p}. Expected outputs of preprocess_features.py in work dir."
+            f"Missing {p}. Expected outputs of preprocess_features.py in features dir."
         )
     df: pd.DataFrame = pd.read_csv(p, dtype=str, keep_default_na=True)
     for c in ID_COLS:

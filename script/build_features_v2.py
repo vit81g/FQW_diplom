@@ -15,12 +15,12 @@ build_features_v2.py
 Если PAN-события попали в SIEM-файлы (бывает) — скрипт дополнительно отделит их
 по сигнатуре: Name=TRAFFIC, DeviceProduct=PAN-OS, DeviceVendor содержит "Palo Alto Networks".
 
-Выход (work/):
+Выход (features/):
 - features_users.csv
 - features_hosts.csv
 
 Запуск:
-python build_features_v2.py --work .\\work
+python build_features_v2.py --work .\\work --features-dir .\\features
 """
 
 from __future__ import annotations
@@ -311,16 +311,22 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Путь к папке work с суточными CSV")
+    p.add_argument("--features-dir", default="features", help="Папка для вывода features_*.csv (default: features)")
     args = p.parse_args()
 
     work_dir = Path(args.work)
     if not work_dir.exists():
         raise FileNotFoundError(f"Work directory not found: {work_dir}")
 
+    features_dir = Path(args.features_dir)
+    if not features_dir.is_absolute():
+        features_dir = work_dir.parent / features_dir
+
     users_df, hosts_df = build_features(work_dir)
 
-    out_users = work_dir / "features_users.csv"
-    out_hosts = work_dir / "features_hosts.csv"
+    features_dir.mkdir(parents=True, exist_ok=True)
+    out_users = features_dir / "features_users.csv"
+    out_hosts = features_dir / "features_hosts.csv"
     users_df.to_csv(out_users, index=False)
     hosts_df.to_csv(out_hosts, index=False)
 

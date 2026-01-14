@@ -4,13 +4,13 @@
 visualize_reports.py
 
 CLI-инструмент для генерации графиков аномалий (day/week/month).
-Графики сохраняются в: report/<scope>_<date>/ (по умолчанию внутри --work).
+Графики сохраняются в: report/<scope>_<date>/ (по умолчанию рядом с папкой features).
 
 Примеры:
-  python visualize_reports.py --work .\\work --scope day --top-pct 0.05
-  python visualize_reports.py --work .\\work --scope week --date 2025-12-31
-  python visualize_reports.py --work .\\work --scope month
-  python visualize_reports.py --work .\\work --report-dir .\\report
+  python visualize_reports.py --work .\\features --scope day --top-pct 0.05
+  python visualize_reports.py --work .\\features --scope week --date 2025-12-31
+  python visualize_reports.py --work .\\features --scope month
+  python visualize_reports.py --work .\\features --report-dir .\\report
 """
 
 from __future__ import annotations
@@ -107,7 +107,7 @@ def run(
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
+    p.add_argument("--work", default="features", help="Features directory (e.g., .\\features)")
     p.add_argument("--report-dir", default="report", help="Output folder for reports (default: report)")
     p.add_argument("--scope", required=True, choices=["day", "week", "month"])
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (optional)")
@@ -121,7 +121,7 @@ def main() -> int:
     work_dir = Path(args.work)
     report_dir = Path(args.report_dir)
     if not report_dir.is_absolute():
-        report_dir = work_dir / report_dir
+        report_dir = work_dir.parent / report_dir
 
     out: Path = run(
         work_dir,
