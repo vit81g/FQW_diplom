@@ -10,7 +10,7 @@ explain_anomalies.py
 
 Вход:
   - features_users_clean.csv и features_hosts_clean.csv (в папке --work)
-  - anomalies_users_YYYY-MM-DD.csv и anomalies_hosts_YYYY-MM-DD.csv (в папке --anomaly-dir)
+  - anomalies_users_YYYY-MM-DD.csv и anomalies_hosts_YYYY-MM-DD.csv (в папке --anomaly-dir или --work)
 
 Выход (в папке --anomaly-dir):
   - anomalies_users_YYYY-MM-DD_explain.csv
@@ -18,9 +18,9 @@ explain_anomalies.py
   - anomalies_all_YYYY-MM-DD_explain.csv  (users+hosts вместе)
 
 Запуск:
-  python explain_anomalies.py --work .\\work --date 2025-12-31
-  python explain_anomalies.py --work .\\work                (дата по умолчанию — последняя anomalies_*)
-  python explain_anomalies.py --work .\\work --anomaly-dir .\\anomaly
+  python explain_anomalies.py --work .\\features --date 2025-12-31
+  python explain_anomalies.py --work .\\features                (дата по умолчанию — последняя anomalies_*)
+  python explain_anomalies.py --work .\\features --anomaly-dir .\\features
 """
 
 from __future__ import annotations
@@ -266,8 +266,8 @@ def _explain_one_kind(
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--work", required=True, help="Work directory")
-    p.add_argument("--anomaly-dir", default="anomaly", help="Folder with anomaly CSVs (default: anomaly)")
+    p.add_argument("--work", default="features", help="Features directory (default: features)")
+    p.add_argument("--anomaly-dir", default=None, help="Folder with anomaly CSVs (default: features dir)")
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (default: latest anomalies_* date)")
     p.add_argument("--top-features", type=int, default=5, help="How many top deviating features to include (3-5 typical)")
     args = p.parse_args()
@@ -276,7 +276,7 @@ def main() -> int:
     if not work_dir.exists():
         raise FileNotFoundError(f"Work dir not found: {work_dir}")
 
-    anomaly_dir: Path = Path(args.anomaly_dir)
+    anomaly_dir: Path = Path(args.anomaly_dir) if args.anomaly_dir else work_dir
     if not anomaly_dir.is_absolute():
         anomaly_dir = work_dir / anomaly_dir
     if not anomaly_dir.exists():

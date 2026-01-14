@@ -8,7 +8,7 @@ auto_generate_reports.py
 - week
 - month
 
-Результаты сохраняются в: report/<scope>_<date>/ (по умолчанию внутри --work).
+Результаты сохраняются в: report/<scope>_<date>/ (по умолчанию рядом с папкой features).
 """
 
 from __future__ import annotations
@@ -97,7 +97,7 @@ def _run_one(
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
+    p.add_argument("--work", default="features", help="Features directory (e.g., .\\features)")
     p.add_argument("--report-dir", default="report", help="Output folder for reports (default: report)")
     p.add_argument("--date", default=None, help="Target/end date YYYY-MM-DD (default: latest)")
     p.add_argument("--top-pct", type=float, default=0.05, help="Top share for users/hosts (e.g., 0.05 = 5%)")
@@ -110,7 +110,7 @@ def main() -> int:
     work: Path = Path(args.work)
     report_dir: Path = Path(args.report_dir)
     if not report_dir.is_absolute():
-        report_dir = work / report_dir
+        report_dir = work.parent / report_dir
     users: pd.DataFrame = core.load_features(work, "users")
     hosts: pd.DataFrame = core.load_features(work, "hosts")
 

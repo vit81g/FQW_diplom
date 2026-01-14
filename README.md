@@ -24,30 +24,30 @@
 /script/readme.md           — подробная документация по каждому скрипту
 /script/data/               — входные выгрузки SIEM (TSV/TXT)
 /script/work/               — рабочие результаты и промежуточные данные
-/script/work/report/        — итоговые отчёты и графики
-/script/work/anomaly/       — результаты анализа аномалий
+/script/features/           — признаки, аномалии и объяснения
+/script/report/             — итоговые отчёты и графики
 /screens/                  — скриншоты и иллюстрации к отчётам
 ```
 
 ## Краткий конвейер обработки
-1. **Нормализация SIEM** (`python_script.py`) → суточные CSV + анонимизация пользователей.
-2. **Построение признаков** (`build_features_v2.py`) → `features_users.csv`, `features_hosts.csv`.
-3. **Очистка признаков** (`preprocess_features.py`) → `features_*_clean.csv`.
-4. **Обучение и скоринг** (`train_anomaly_models.py`) → топ аномалий по дате.
-5. **Объяснение аномалий** (`explain_anomalies.py`) → топ признаков отклонения.
-6. **Визуализация** (`visualize_reports.py` / `auto_generate_reports.py`) → графики.
-7. **SOC-отчёт** (`soc_report.py`) → Markdown-отчёт с контекстом.
+1. **Нормализация SIEM** (`python_script.py`) → суточные CSV + анонимизация пользователей (в `work`).
+2. **Построение признаков** (`build_features_v2.py`) → `features_users.csv`, `features_hosts.csv` (в `features`).
+3. **Очистка признаков** (`preprocess_features.py`) → `features_*_clean.csv` (в `features`).
+4. **Обучение и скоринг** (`train_anomaly_models.py`) → топ аномалий по дате (в `features`).
+5. **Объяснение аномалий** (`explain_anomalies.py`) → топ признаков отклонения (в `features`).
+6. **Визуализация** (`visualize_reports.py` / `auto_generate_reports.py`) → графики (в `report`).
+7. **SOC-отчёт** (`soc_report.py`) → Markdown-отчёт с контекстом (в `report`, имя содержит дату/время).
 
 ## Быстрый старт (пример)
 ```bash
 cd script
 python python_script.py
-python build_features_v2.py --work ./work
-python preprocess_features.py --work ./work
-python train_anomaly_models.py --work ./work
-python explain_anomalies.py --work ./work
-python visualize_reports.py --work ./work --scope day --top-pct 0.05
-python soc_report.py --work ./work --scope day
+python build_features_v2.py --work ./work --features-dir ./features
+python preprocess_features.py --work ./features
+python train_anomaly_models.py --work ./features
+python explain_anomalies.py --work ./features
+python visualize_reports.py --work ./features --scope day --top-pct 0.05
+python soc_report.py --work ./work --features-dir ./features --scope day
 ```
 
 ## Зависимости
