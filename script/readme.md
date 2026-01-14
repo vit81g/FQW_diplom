@@ -71,12 +71,13 @@ python preprocess_features.py --users ./work/features_users.csv --hosts ./work/f
 **Назначение:**
 - обучает Isolation Forest и LOF на всех днях, кроме целевого;
 - считает аномальные скоры для выбранной даты;
-- сохраняет топ-N аномалий и метаданные.
+- сохраняет топ-N аномалий и метаданные в `anomaly/`.
 
 **Запуск:**
 ```bash
 python train_anomaly_models.py --work ./work
 python train_anomaly_models.py --work ./work --date 2025-12-17 --top 30
+python train_anomaly_models.py --work ./work --out-dir ./anomaly
 ```
 
 ---
@@ -86,13 +87,13 @@ python train_anomaly_models.py --work ./work --date 2025-12-17 --top 30
 **Назначение:**
 - для каждой аномалии определяет 3–5 признаков с наибольшим отклонением от исторической базы;
 - присваивает уровень серьёзности по рангу внутри дня;
-- сохраняет отчёты для users, hosts и общий файл;
-- формирует отдельный файл с краткими причинами и рекомендациями для SOC-аналитика.
+- сохраняет отчёты для users, hosts и общий файл в `anomaly/`.
 
 **Запуск:**
 ```bash
 python explain_anomalies.py --work ./work --date 2025-12-31
 python explain_anomalies.py --work ./work
+python explain_anomalies.py --work ./work --anomaly-dir ./anomaly
 ```
 
 ---
@@ -101,13 +102,14 @@ python explain_anomalies.py --work ./work
 
 **Назначение:**
 - строит графики аномалий для суток/недели/месяца;
-- сохраняет PNG и CSV в `work/reports/<scope>_<date>/`.
+- сохраняет PNG и CSV в `report/<scope>_<date>/`.
 
 **Запуск:**
 ```bash
 python visualize_reports.py --work ./work --scope day --top-pct 0.05
 python visualize_reports.py --work ./work --scope week --date 2025-12-31
 python visualize_reports.py --work ./work --scope month
+python visualize_reports.py --work ./work --report-dir ./report
 ```
 
 ---
@@ -116,13 +118,30 @@ python visualize_reports.py --work ./work --scope month
 
 **Назначение:**
 - запускает генерацию day/week/month отчётов за одну команду;
-- сохраняет результаты в `work/reports/`.
+- сохраняет результаты в `report/`.
 
 **Запуск:**
 ```bash
 python auto_generate_reports.py --work ./work
 # или с долей top-аномалий
 python auto_generate_reports.py --work ./work --top-pct 0.05
+python auto_generate_reports.py --work ./work --report-dir ./report
+```
+
+---
+
+## soc_report.py — SOC-отчёт с контекстом
+
+**Назначение:**
+- формирует SOC-отчёт по аномалиям;
+- добавляет контекст (программы, пользователи, хосты, время, адреса);
+- сохраняет Markdown-отчёт в `report/`, контекстные данные — в `anomaly/`.
+
+**Запуск:**
+```bash
+python soc_report.py --work ./work --scope day --date 2025-12-31
+python soc_report.py --work ./work --scope week --date 2025-12-31
+python soc_report.py --work ./work --scope month --date 2025-12-31
 ```
 
 ---

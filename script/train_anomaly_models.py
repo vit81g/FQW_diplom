@@ -10,7 +10,7 @@ train_anomaly_models.py
   - features_users_clean.csv
   - features_hosts_clean.csv
 
-Выход (work dir):
+Выход (anomaly dir):
   - anomalies_users_YYYY-MM-DD.csv
   - anomalies_hosts_YYYY-MM-DD.csv
   - anomalies_users_YYYY-MM-DD_meta.json
@@ -24,6 +24,7 @@ train_anomaly_models.py
 Запуск:
   python train_anomaly_models.py --work .\\work
   python train_anomaly_models.py --work .\\work --date 2025-12-17 --top 30
+  python train_anomaly_models.py --work .\\work --out-dir .\\anomaly
 """
 
 from __future__ import annotations
@@ -185,7 +186,7 @@ def _build_report(
 
 
 def _write_outputs(
-    work_dir: Path,
+    out_dir: Path,
     prefix: str,
     target_date: str,
     report_df: pd.DataFrame,
@@ -193,8 +194,9 @@ def _write_outputs(
     top_n: int,
 ) -> None:
     """Сохраняет CSV с топом аномалий и JSON с метаданными."""
-    out_csv: Path = work_dir / f"anomalies_{prefix}_{target_date}.csv"
-    out_json: Path = work_dir / f"anomalies_{prefix}_{target_date}_meta.json"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_csv: Path = out_dir / f"anomalies_{prefix}_{target_date}.csv"
+    out_json: Path = out_dir / f"anomalies_{prefix}_{target_date}_meta.json"
 
     report_top: pd.DataFrame = report_df.head(top_n).copy()
     report_top.to_csv(out_csv, index=False)
@@ -208,6 +210,7 @@ def _write_outputs(
 
 def run_one(
     work_dir: Path,
+    out_dir: Path,
     name: str,
     in_file: str,
     prefix: str,
@@ -260,12 +263,13 @@ def run_one(
         },
     }
 
-    _write_outputs(work_dir, prefix, tdate, report, meta, top_n)
+    _write_outputs(out_dir, prefix, tdate, report, meta, top_n)
 
 
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Path to work directory")
+    p.add_argument("--out-dir", default="anomaly", help="Output folder for anomalies (default: anomaly)")
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (default: latest in dataset)")
     p.add_argument("--top", type=int, default=30, help="TOP-N anomalies to export per entity type")
     p.add_argument("--contamination", type=float, default=0.05, help="Expected anomaly fraction (0..0.5). Used by IF/LOF.")
@@ -276,6 +280,9 @@ def main() -> int:
     args = p.parse_args()
 
     work_dir: Path = Path(args.work)
+    out_dir: Path = Path(args.out_dir)
+    if not out_dir.is_absolute():
+        out_dir = work_dir / out_dir
     if not work_dir.exists():
         raise FileNotFoundError(f"Work directory not found: {work_dir}")
 
@@ -295,6 +302,7 @@ def main() -> int:
 
     run_one(
         work_dir=work_dir,
+        out_dir=out_dir,
         name="users",
         in_file="features_users_clean.csv",
         prefix="users",
@@ -309,6 +317,7 @@ def main() -> int:
 
     run_one(
         work_dir=work_dir,
+        out_dir=out_dir,
         name="hosts",
         in_file="features_hosts_clean.csv",
         prefix="hosts",

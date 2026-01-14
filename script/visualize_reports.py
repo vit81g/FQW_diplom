@@ -4,12 +4,13 @@
 visualize_reports.py
 
 CLI-инструмент для генерации графиков аномалий (day/week/month).
-Графики сохраняются в: work/reports/<scope>_<date>/
+Графики сохраняются в: report/<scope>_<date>/ (по умолчанию внутри --work).
 
 Примеры:
   python visualize_reports.py --work .\\work --scope day --top-pct 0.05
   python visualize_reports.py --work .\\work --scope week --date 2025-12-31
   python visualize_reports.py --work .\\work --scope month
+  python visualize_reports.py --work .\\work --report-dir .\\report
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ import viz_core as core
 
 def run(
     work: Path,
+    report_dir: Path,
     scope: str,
     date: Optional[str],
     top_pct: float,
@@ -45,7 +47,7 @@ def run(
     target: str = date if date else available[-1]
     target = str(pd.to_datetime(target, errors="raise").date())
 
-    out_base: Path = core.ensure_dir(work / "reports")
+    out_base: Path = core.ensure_dir(report_dir)
 
     if scope == "day":
         out = core.ensure_dir(out_base / f"day_{target}")
@@ -106,6 +108,7 @@ def run(
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
+    p.add_argument("--report-dir", default="report", help="Output folder for reports (default: report)")
     p.add_argument("--scope", required=True, choices=["day", "week", "month"])
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (optional)")
     p.add_argument("--top-pct", type=float, default=0.05, help="Top share for users/hosts (e.g., 0.05 = 5%)")
@@ -115,8 +118,14 @@ def main() -> int:
     p.add_argument("--random-state", type=int, default=42)
     args = p.parse_args()
 
+    work_dir = Path(args.work)
+    report_dir = Path(args.report_dir)
+    if not report_dir.is_absolute():
+        report_dir = work_dir / report_dir
+
     out: Path = run(
-        Path(args.work),
+        work_dir,
+        report_dir,
         args.scope,
         args.date,
         args.top_pct,
