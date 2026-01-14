@@ -4,7 +4,28 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e554abce-d3dc-43f7-b015-f112669f5253" name="Changes" comment="" />
+    <list default="true" id="e554abce-d3dc-43f7-b015-f112669f5253" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_all_2025-12-31_explain.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31_explain.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_hosts_2025-12-31_meta.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31_explain.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/anomalies_users_2025-12-31_meta.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/features_hosts.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/features_hosts_clean.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/features_users.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/features_users_clean.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/day_scores_hosts_2025-12-31.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/day_scores_users_2025-12-31.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/severity_hosts_2025-12-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/severity_users_2025-12-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/top_hosts_2025-12-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/reports/day_2025-12-31/top_users_2025-12-31.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/soc_recommendations_2025-12-31.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/work/soc_recommendations_2025-12-31.md" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -34,14 +55,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

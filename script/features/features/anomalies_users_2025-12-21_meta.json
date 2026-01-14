@@ -1,0 +1,41 @@
+{
+  "entity_type": "users",
+  "target_date": "2025-12-21",
+  "rows_train": 982,
+  "rows_test": 28,
+  "feature_columns": [
+    "day_of_week",
+    "is_weekend",
+    "siem_events_total",
+    "siem_unique_destination_addr",
+    "siem_unique_source_process",
+    "siem_unique_event_class",
+    "siem_unique_category",
+    "siem_unique_name",
+    "siem_unique_hours",
+    "siem_night_share",
+    "siem_business_share",
+    "pan_events_total",
+    "pan_unique_destination_addr",
+    "pan_unique_event_class",
+    "pan_unique_category",
+    "pan_unique_name",
+    "pan_unique_hours",
+    "pan_night_share",
+    "pan_business_share",
+    "pan_share_of_all_events"
+  ],
+  "parameters": {
+    "contamination": 0.05,
+    "isolation_forest": {
+      "n_estimators": 300,
+      "max_samples": "auto",
+      "random_state": 42
+    },
+    "lof": {
+      "n_neighbors": 20,
+      "novelty": true
+    },
+    "scaler": "RobustScaler"
+  }
+}
