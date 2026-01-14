@@ -63,11 +63,14 @@ DATE_RE = re.compile(r"(\d{4}-\d{2}-\d{2})", re.IGNORECASE)
 
 def _is_pan_traffic(df: pd.DataFrame) -> pd.Series:
     """Проверяет PAN-traffic: Name=TRAFFIC, DeviceProduct=PAN-OS, DeviceVendor содержит 'Palo Alto Networks'."""
+    # Если обязательных колонок нет — возвращаем False для всех строк.
     if not {COL_NAME, COL_DEVICE_PRODUCT, COL_DEVICE_VENDOR}.issubset(df.columns):
         return pd.Series([False] * len(df), index=df.index)
+    # Приводим поля к строкам и нормализуем регистр.
     name = df[COL_NAME].astype(str).str.strip().str.upper()
     prod = df[COL_DEVICE_PRODUCT].astype(str).str.strip().str.upper()
     vend = df[COL_DEVICE_VENDOR].astype(str).str.strip()
+    # Формируем булеву маску PAN-traffic.
     return (
         name.eq("TRAFFIC")
         & prod.eq("PAN-OS")
@@ -77,12 +80,15 @@ def _is_pan_traffic(df: pd.DataFrame) -> pd.Series:
 
 def _extract_date_from_filename(name: str) -> Optional[str]:
     """Извлекает дату (YYYY-MM-DD) из имени файла."""
+    # Ищем все совпадения регулярным выражением.
     m = DATE_RE.findall(name)
+    # Возвращаем последнее совпадение (обычно оно самое точное).
     return m[-1] if m else None
 
 
 def _classify_kind_from_filename(name: str) -> Optional[str]:
     """Определяет тип файла по имени: SIEM или PAN."""
+    # Приводим имя к верхнему регистру для унификации поиска.
     up = name.upper()
     if "_SIEM_" in up or up.endswith("_SIEM.CSV") or "SIEM" in up:
         return "SIEM"
@@ -93,6 +99,7 @@ def _classify_kind_from_filename(name: str) -> Optional[str]:
 
 def _extract_entity_from_filename(name: str) -> str:
     """Извлекает сущность (userXXX или hostname) из имени файла."""
+    # Убираем расширение и анализируем шаблоны.
     stem = Path(name).stem
     up = stem.upper()
     for token in ("_SIEM_", "_PAN_"):
@@ -103,29 +110,35 @@ def _extract_entity_from_filename(name: str) -> str:
         idx = up.find(token)
         if idx > 0:
             return stem[:idx]
+    # Если маркеров нет — возвращаем всё имя без расширения.
     return stem
 
 
 def _role_from_entity(entity: str) -> str:
     """Определяет роль сущности: user или host."""
+    # Имена вида user001, user123 считаем пользователями.
     if re.fullmatch(r"user\d{3}", entity, flags=re.IGNORECASE):
         return "user"
+    # Все остальные сущности трактуем как хосты.
     return "host"
 
 
 def _safe_read_csv(path: Path) -> pd.DataFrame:
     """Читает суточные CSV как строки (данные уже нормализованы)."""
+    # Используем dtype=str, чтобы не терять исходный формат.
     return pd.read_csv(path, dtype=str, keep_default_na=True)
 
 
 def _ensure_date_column(df: pd.DataFrame, fallback_date: Optional[str]) -> pd.DataFrame:
     """Обеспечивает наличие колонки Date, при необходимости — по Timestamp или имени файла."""
+    # Если колонка уже есть — приводим её к строковому формату.
     if COL_DATE in df.columns:
         df[COL_DATE] = df[COL_DATE].astype(str)
         return df
 
     # Иначе пробуем Timestamp.
     if COL_TIMESTAMP in df.columns:
+        # Превращаем время в дату.
         dt = pd.to_datetime(df[COL_TIMESTAMP], errors="coerce")
         df[COL_DATE] = dt.dt.date.astype("string")
         return df
@@ -135,55 +148,70 @@ def _ensure_date_column(df: pd.DataFrame, fallback_date: Optional[str]) -> pd.Da
         df[COL_DATE] = fallback_date
         return df
 
+    # Если даты нигде нет — создаём пустую колонку.
     df[COL_DATE] = pd.NA
     return df
 
 
 def _hour_series(df: pd.DataFrame) -> pd.Series:
     """Возвращает часы события (0-23) из Timestamp."""
+    # Если времени нет — возвращаем пустую серию.
     if COL_TIMESTAMP not in df.columns:
         return pd.Series([pd.NA] * len(df), index=df.index)
+    # Конвертируем время в datetime и извлекаем час.
     dt = pd.to_datetime(df[COL_TIMESTAMP], errors="coerce")
     return dt.dt.hour
 
 
 def _share_in_hours(hours: pd.Series, start: int, end: int) -> float:
     """Доля событий в диапазоне часов (включительно)."""
+    # Проверяем, что серия существует и содержит валидные значения.
     if hours is None or hours.isna().all():
         return 0.0
+    # Приводим часы к int и отбрасываем пустые.
     valid = hours.dropna().astype(int)
     if len(valid) == 0:
         return 0.0
+    # Возвращаем долю событий в диапазоне.
     return float(((valid >= start) & (valid <= end)).mean())
 
 
 def _nunique(df: pd.DataFrame, col: str) -> int:
     """Количество уникальных непустых значений в колонке."""
+    # Если колонки нет — возвращаем ноль.
     if col not in df.columns:
         return 0
+    # Убираем пропуски и пустые строки.
     s = df[col].dropna().astype(str).str.strip()
     s = s[s != ""]
+    # Возвращаем число уникальных значений.
     return int(s.nunique())
 
 
 def _unique_users(df: pd.DataFrame) -> int:
     """Для host/day: сколько уникальных пользователей взаимодействовало с хостом."""
+    # Собираем доступные пользовательские колонки.
     cols = [c for c in (COL_SRC_USER, COL_DST_USER) if c in df.columns]
     if not cols:
         return 0
+    # Объединяем значения пользователей в одну серию.
     s = pd.concat([df[c].astype(str) for c in cols], ignore_index=True)
     s = s.str.strip()
+    # Убираем технические значения и машинные аккаунты.
     s = s[~s.str.lower().isin(INVALID_USER_TOKENS)]
     s = s[~s.str.endswith("$", na=False)]
     s = s[s != ""]
+    # Считаем число уникальных пользователей.
     return int(s.nunique())
 
 
 def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.DataFrame, role: str) -> Dict[str, object]:
     """Собирает агрегированные признаки по одной сущности за день."""
+    # Получаем часовые распределения для SIEM и PAN.
     hours_siem = _hour_series(df_siem)
     hours_pan = _hour_series(df_pan)
 
+    # Базовые поля идентификации.
     row: Dict[str, object] = {
         "entity": entity,
         "date": date,
@@ -216,9 +244,11 @@ def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.Dat
         "pan_business_share": _share_in_hours(hours_pan, 9, 17),
     })
 
+    # Доля PAN-событий от общего объёма.
     total = row["siem_events_total"] + row["pan_events_total"]
     row["pan_share_of_all_events"] = float(row["pan_events_total"] / total) if total > 0 else 0.0
 
+    # Для хостов добавляем уникальных пользователей.
     if role == "host":
         row["siem_unique_users"] = _unique_users(df_siem)
         row["pan_unique_users"] = _unique_users(df_pan)
@@ -228,9 +258,11 @@ def _aggregate_one(entity: str, date: str, df_siem: pd.DataFrame, df_pan: pd.Dat
 
 def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Главная функция построения признаков для users и hosts."""
+    # Собираем список CSV в рабочей директории.
     all_csv: list[Path] = list(work_dir.glob("*.csv"))
     csv_files: list[Path] = sorted([p for p in all_csv if p.name not in EXCLUDE_FILES])
 
+    # Печатаем базовую статистику.
     print(f"[*] Work dir: {work_dir}")
     print(f"[*] Found CSV files: {len(all_csv)}")
 
@@ -242,20 +274,25 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
     buckets: Dict[Tuple[str, str, str], Dict[str, pd.DataFrame]] = {}
 
     for path in csv_files:
+        # Разбираем имя файла.
         fname = path.name
         entity = _extract_entity_from_filename(fname)
         role = _role_from_entity(entity)
         kind = _classify_kind_from_filename(fname) or "SIEM"
         fdate = _extract_date_from_filename(fname)
 
+        # Считаем файл распознанным.
         recognized += 1
         try:
+            # Читаем содержимое CSV.
             df = _safe_read_csv(path)
             parsed += 1
         except Exception as e:
+            # Сохраняем информацию о неудачном чтении.
             skipped.append((fname, f"read_error: {e}"))
             continue
 
+        # Убеждаемся, что есть колонка даты.
         df = _ensure_date_column(df, fdate)
         if df[COL_DATE].isna().all():
             skipped.append((fname, "no_date_in_file_or_columns"))
@@ -270,28 +307,35 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
             df_pan = df.copy()
             df_siem = df.iloc[0:0].copy()
 
+        # Разбиваем SIEM по дням и складываем в бакеты.
         for day, part in df_siem.groupby(COL_DATE, dropna=True):
             key = (role, entity, str(day))
             cur = buckets.setdefault(key, {}).get("SIEM", pd.DataFrame())
             buckets[key]["SIEM"] = pd.concat([cur, part], ignore_index=True)
 
+        # Разбиваем PAN по дням и складываем в бакеты.
         for day, part in df_pan.groupby(COL_DATE, dropna=True):
             key = (role, entity, str(day))
             cur = buckets.setdefault(key, {}).get("PAN", pd.DataFrame())
             buckets[key]["PAN"] = pd.concat([cur, part], ignore_index=True)
 
+    # Контейнеры для результатов.
     user_rows: List[Dict[str, object]] = []
     host_rows: List[Dict[str, object]] = []
 
     for (role, entity, day), d in buckets.items():
+        # Забираем SIEM и PAN части для конкретного дня.
         df_siem = d.get("SIEM", pd.DataFrame())
         df_pan = d.get("PAN", pd.DataFrame())
+        # Собираем агрегированную строку признаков.
         row = _aggregate_one(entity, day, df_siem, df_pan, role)
         (user_rows if role == "user" else host_rows).append(row)
 
+    # Превращаем списки в таблицы.
     users_df = pd.DataFrame(user_rows)
     hosts_df = pd.DataFrame(host_rows)
 
+    # Печатаем статистику выполнения.
     print(f"[*] Recognized inputs: {recognized} | Parsed: {parsed} | Produced day-buckets: {len(buckets)}")
     print(f"[*] Output rows: users={len(users_df)} hosts={len(hosts_df)}")
 
@@ -300,6 +344,7 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
         for fn, why in skipped[:15]:
             print(f"    - {fn}: {why}")
 
+    # Сортируем строки для стабильного вывода.
     if not users_df.empty:
         users_df = users_df.sort_values(["entity", "date"]).reset_index(drop=True)
     if not hosts_df.empty:
@@ -309,27 +354,35 @@ def build_features(work_dir: Path) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def main() -> int:
+    # Объявляем аргументы командной строки.
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Путь к папке work с суточными CSV")
     p.add_argument("--features-dir", default="features", help="Папка для вывода features_*.csv (default: features)")
+    # Читаем аргументы из CLI.
     args = p.parse_args()
 
+    # Проверяем существование рабочей директории.
     work_dir = Path(args.work)
     if not work_dir.exists():
         raise FileNotFoundError(f"Work directory not found: {work_dir}")
 
+    # Настраиваем директорию для вывода признаков.
     features_dir = Path(args.features_dir)
     if not features_dir.is_absolute():
         features_dir = work_dir.parent / features_dir
 
+    # Строим признаки.
     users_df, hosts_df = build_features(work_dir)
 
+    # Гарантируем существование папки для сохранения.
     features_dir.mkdir(parents=True, exist_ok=True)
     out_users = features_dir / "features_users.csv"
     out_hosts = features_dir / "features_hosts.csv"
+    # Записываем результаты в CSV.
     users_df.to_csv(out_users, index=False)
     hosts_df.to_csv(out_hosts, index=False)
 
+    # Сообщаем пути к сохранённым файлам.
     print(f"[+] Wrote: {out_users}")
     print(f"[+] Wrote: {out_hosts}")
     return 0
