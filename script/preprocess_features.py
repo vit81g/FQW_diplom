@@ -5,14 +5,14 @@ preprocess_features.py
 Подготовка таблиц признаков для алгоритмов поиска аномалий (Isolation Forest / LOF).
 
 Что делает:
-  - читает features_users.csv и features_hosts.csv;
+  - читает features_users.csv и features_hosts.csv из папки features;
   - приводит колонку date к формату YYYY-MM-DD;
   - заполняет пропуски в числовых признаках нулями;
-  - сохраняет *_clean.csv в указанную директорию.
+  - сохраняет *_clean.csv в папку features (по умолчанию).
 
 Запуск:
-  python preprocess_features.py --work ./work
-  python preprocess_features.py --users ./work/features_users.csv --hosts ./work/features_hosts.csv --out-dir ./work
+  python preprocess_features.py --work ./features
+  python preprocess_features.py --users ./features/features_users.csv --hosts ./features/features_hosts.csv --out-dir ./features
 """
 
 from __future__ import annotations
@@ -89,10 +89,10 @@ def preprocess(in_path: Path, out_path: Path, name: str) -> None:
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--work", type=str, default=None, help="Work directory containing features_*.csv")
+    p.add_argument("--work", type=str, default="features", help="Features directory containing features_*.csv")
     p.add_argument("--users", type=str, default=None, help="Path to features_users.csv")
     p.add_argument("--hosts", type=str, default=None, help="Path to features_hosts.csv")
-    p.add_argument("--out-dir", type=str, default=None, help="Output directory (default: work dir)")
+    p.add_argument("--out-dir", type=str, default=None, help="Output directory (default: features dir)")
     p.add_argument("--out-users", type=str, default="features_users_clean.csv", help="Output filename for users")
     p.add_argument("--out-hosts", type=str, default="features_hosts_clean.csv", help="Output filename for hosts")
     args = p.parse_args()

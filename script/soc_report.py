@@ -11,24 +11,25 @@ soc_report.py
   которые связаны с аномальной активностью.
 
 Вход:
-  - anomalies_*_YYYY-MM-DD_explain.csv (в папке --anomaly-dir)
+  - anomalies_*_YYYY-MM-DD_explain.csv (в папке --features-dir или --anomaly-dir)
   - суточные CSV события в --work (userXXX_SIEM_YYYY-MM-DD.csv, host_SIEM_YYYY-MM-DD.csv, *_PAN_YYYY-MM-DD.csv)
   - (опционально) user_mapping.csv для расшифровки userXXX
 
 Выход:
-  - SOC-отчёт в Markdown (в папке --report-dir)
+  - SOC-отчёт в Markdown (в папке --report-dir, с датой и временем создания в имени)
   - контекстная таблица anomaly_context_* (в папке --anomaly-dir)
 
 Запуск:
-  python soc_report.py --work .\\work --scope day --date 2025-12-31
-  python soc_report.py --work .\\work --scope week --date 2025-12-31
-  python soc_report.py --work .\\work --scope month --date 2025-12-31
+  python soc_report.py --work .\\work --features-dir .\\features --scope day --date 2025-12-31
+  python soc_report.py --work .\\work --features-dir .\\features --scope week --date 2025-12-31
+  python soc_report.py --work .\\work --features-dir .\\features --scope month --date 2025-12-31
 """
 
 from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -282,8 +283,9 @@ def _context_for_anomalies(
 
 def main() -> int:
     p = argparse.ArgumentParser(description="SOC report generator with anomaly context")
-    p.add_argument("--work", required=True, help="Work directory")
-    p.add_argument("--anomaly-dir", default="anomaly", help="Folder with anomaly data (default: anomaly)")
+    p.add_argument("--work", required=True, help="Work directory with daily CSV events")
+    p.add_argument("--features-dir", default="features", help="Features directory (default: features)")
+    p.add_argument("--anomaly-dir", default=None, help="Folder with anomaly data (default: features dir)")
     p.add_argument("--report-dir", default="report", help="Output folder for reports (default: report)")
     p.add_argument("--scope", required=True, choices=["day", "week", "month"], help="Report scope")
     p.add_argument("--date", default=None, help="Target date (end date for week/month)")
@@ -293,15 +295,21 @@ def main() -> int:
     if not work_dir.exists():
         raise FileNotFoundError(f"Work dir not found: {work_dir}")
 
-    anomaly_dir = Path(args.anomaly_dir)
+    features_dir = Path(args.features_dir)
+    if not features_dir.is_absolute():
+        features_dir = work_dir.parent / features_dir
+    if not features_dir.exists():
+        raise FileNotFoundError(f"Features dir not found: {features_dir}")
+
+    anomaly_dir = Path(args.anomaly_dir) if args.anomaly_dir else features_dir
     if not anomaly_dir.is_absolute():
-        anomaly_dir = work_dir / anomaly_dir
+        anomaly_dir = features_dir / anomaly_dir
     if not anomaly_dir.exists():
         raise FileNotFoundError(f"Anomaly dir not found: {anomaly_dir}")
 
     report_dir = Path(args.report_dir)
     if not report_dir.is_absolute():
-        report_dir = work_dir / report_dir
+        report_dir = features_dir.parent / report_dir
     report_dir.mkdir(parents=True, exist_ok=True)
 
     available = _available_dates(anomaly_dir)
@@ -339,7 +347,8 @@ def main() -> int:
     context_out = anomaly_dir / f"anomaly_context_{args.scope}_{target}.csv"
     report_df.to_csv(context_out, index=False)
 
-    report_path = report_dir / f"soc_report_{args.scope}_{target}.md"
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    report_path = report_dir / f"soc_report_{args.scope}_{target}_{stamp}.md"
 
     lines: list[str] = [
         f"# SOC отчёт ({args.scope}) до {target}",
