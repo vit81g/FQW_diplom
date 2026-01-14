@@ -12,7 +12,8 @@
 
 ## Входные данные
 - `features_users_clean.csv`, `features_hosts_clean.csv` в `work/`.
-- Аргументы: `--work`, `--date`, `--top`, параметры моделей.
+- Аргументы: `--work`, `--date`, `--top`, `--out-dir`, параметры моделей.
 
 ## Выходные данные
-- `anomalies_users_YYYY-MM-DD.csv` и `anomalies_hosts_YYYY-MM-DD.csv` в `work/`.
+- `anomalies_users_YYYY-MM-DD.csv` и `anomalies_hosts_YYYY-MM-DD.csv` в `anomaly/`
+  (по умолчанию внутри `--work`).

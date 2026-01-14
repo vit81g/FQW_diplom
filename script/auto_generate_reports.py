@@ -8,7 +8,7 @@ auto_generate_reports.py
 - week
 - month
 
-Результаты сохраняются в: work/reports/<scope>_<date>/
+Результаты сохраняются в: report/<scope>_<date>/ (по умолчанию внутри --work).
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ import viz_core as core
 
 def _run_one(
     work: Path,
+    report_dir: Path,
     scope: str,
     target: str,
     top_pct: float,
@@ -39,7 +40,7 @@ def _run_one(
     if target not in available:
         raise ValueError(f"Date {target} not present. Last available: {available[-1]}")
 
-    out_base: Path = core.ensure_dir(work / "reports")
+    out_base: Path = core.ensure_dir(report_dir)
 
     if scope == "day":
         out = core.ensure_dir(out_base / f"day_{target}")
@@ -97,6 +98,7 @@ def _run_one(
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Work directory (e.g., .\\work)")
+    p.add_argument("--report-dir", default="report", help="Output folder for reports (default: report)")
     p.add_argument("--date", default=None, help="Target/end date YYYY-MM-DD (default: latest)")
     p.add_argument("--top-pct", type=float, default=0.05, help="Top share for users/hosts (e.g., 0.05 = 5%)")
     p.add_argument("--contamination", type=float, default=0.05)
@@ -106,6 +108,9 @@ def main() -> int:
     args = p.parse_args()
 
     work: Path = Path(args.work)
+    report_dir: Path = Path(args.report_dir)
+    if not report_dir.is_absolute():
+        report_dir = work / report_dir
     users: pd.DataFrame = core.load_features(work, "users")
     hosts: pd.DataFrame = core.load_features(work, "hosts")
 
@@ -114,6 +119,7 @@ def main() -> int:
 
     out_day = _run_one(
         work,
+        report_dir,
         "day",
         target,
         args.top_pct,
@@ -125,6 +131,7 @@ def main() -> int:
     print(f"[+] day: {out_day}")
     out_week = _run_one(
         work,
+        report_dir,
         "week",
         target,
         args.top_pct,
@@ -136,6 +143,7 @@ def main() -> int:
     print(f"[+] week: {out_week}")
     out_month = _run_one(
         work,
+        report_dir,
         "month",
         target,
         args.top_pct,

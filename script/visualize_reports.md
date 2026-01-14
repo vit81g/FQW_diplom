@@ -9,8 +9,8 @@
 
 ## Входные данные
 - `features_users_clean.csv`, `features_hosts_clean.csv`.
-- Аргументы: `--work`, `--scope` (day/week/month), `--date`, `--top-pct`.
+- Аргументы: `--work`, `--scope` (day/week/month), `--date`, `--top-pct`, `--report-dir`.
 
 ## Выходные данные
-- PNG и CSV в `work/reports/<scope>_<date>/`.
+- PNG и CSV в `report/<scope>_<date>/` (по умолчанию внутри `--work`).
 - Для day-отчёта TOP-списки рассчитываются как доля от общего числа сущностей.

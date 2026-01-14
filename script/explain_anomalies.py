@@ -8,22 +8,19 @@ explain_anomalies.py
   которые сильнее всего отклонились от базовой линии (median/MAD robust z-score);
 - добавляет метку серьёзности (critical/high/medium/low) по процентилям ранга внутри дня.
 
-Вход (в папке --work):
-  - features_users_clean.csv
-  - features_hosts_clean.csv
-  - anomalies_users_YYYY-MM-DD.csv
-  - anomalies_hosts_YYYY-MM-DD.csv
+Вход:
+  - features_users_clean.csv и features_hosts_clean.csv (в папке --work)
+  - anomalies_users_YYYY-MM-DD.csv и anomalies_hosts_YYYY-MM-DD.csv (в папке --anomaly-dir)
 
-Выход (в папке --work):
+Выход (в папке --anomaly-dir):
   - anomalies_users_YYYY-MM-DD_explain.csv
   - anomalies_hosts_YYYY-MM-DD_explain.csv
   - anomalies_all_YYYY-MM-DD_explain.csv  (users+hosts вместе)
-  - soc_recommendations_YYYY-MM-DD.csv    (причины/рекомендации для SOC)
-  - soc_recommendations_YYYY-MM-DD.md     (человеко-читаемый отчёт)
 
 Запуск:
   python explain_anomalies.py --work .\\work --date 2025-12-31
   python explain_anomalies.py --work .\\work                (дата по умолчанию — последняя anomalies_*)
+  python explain_anomalies.py --work .\\work --anomaly-dir .\\anomaly
 """
 
 from __future__ import annotations
@@ -41,64 +38,21 @@ import pandas as pd
 ID_COLS: list[str] = ["entity", "date"]
 DATE_RE = re.compile(r"anomalies_(users|hosts)_(\d{4}-\d{2}-\d{2})\.csv$", re.IGNORECASE)
 
-FEATURE_HINTS: dict[str, tuple[str, str]] = {
-    "events_total": (
-        "резкое изменение количества событий",
-        "Проверить источники событий и наличие массовых операций/сканирований.",
-    ),
-    "unique_name": (
-        "появление новых имён событий/программ",
-        "Проверить запуск новых приложений/процессов и соответствие политике.",
-    ),
-    "unique_category": (
-        "появление новых категорий событий",
-        "Сопоставить новые категории с типовыми сценариями и расследовать отклонения.",
-    ),
-    "unique_event_class": (
-        "появление новых классов сетевых событий",
-        "Проверить сетевую активность, типы трафика и правила NGFW.",
-    ),
-    "unique_destination_addr": (
-        "новые адреса назначения в сети",
-        "Проверить назначения соединений, сверить с белыми/чёрными списками.",
-    ),
-    "unique_users": (
-        "необычное число пользователей на хосте",
-        "Проверить появление новых учётных записей и совместное использование.",
-    ),
-    "unique_hours": (
-        "активность в нетипичные часы",
-        "Сверить время активности с рабочими сменами и разрешёнными окнами.",
-    ),
-    "night_share": (
-        "рост ночной активности",
-        "Проверить события вне рабочего времени и возможные автоматизации.",
-    ),
-    "business_share": (
-        "смещение активности между рабочими и нерабочими часами",
-        "Проверить регламенты и плановые работы, сравнить с типовым графиком.",
-    ),
-    "pan_share_of_all_events": (
-        "изменение доли сетевых событий",
-        "Проверить сетевые операции и сопоставить с SIEM-событиями.",
-    ),
-}
-
 
 def _read_csv(path: Path, dtype=str) -> pd.DataFrame:
     """Универсальная обёртка над pd.read_csv."""
     return pd.read_csv(path, dtype=dtype, keep_default_na=True)
 
 
-def _pick_date_from_workdir(work_dir: Path) -> str:
+def _pick_date_from_anomaly_dir(anomaly_dir: Path) -> str:
     """Выбирает последнюю дату по файлам anomalies_users_* и anomalies_hosts_*."""
     dates: List[str] = []
-    for p in work_dir.glob("anomalies_*_*.csv"):
+    for p in anomaly_dir.glob("anomalies_*_*.csv"):
         m = DATE_RE.match(p.name)
         if m:
             dates.append(m.group(2))
     if not dates:
-        raise FileNotFoundError("No anomalies_*.csv found in work dir. Run train_anomaly_models.py first.")
+        raise FileNotFoundError("No anomalies_*.csv found in anomaly dir. Run train_anomaly_models.py first.")
     # Сортировка по фактической дате.
     dt = pd.to_datetime(pd.Series(dates), errors="coerce")
     return str(dt.max().date())
@@ -171,87 +125,10 @@ def _coerce_features(df: pd.DataFrame, feature_cols: List[str]) -> pd.DataFrame:
     return df
 
 
-def _direction_label(z: float) -> str:
-    return "рост" if z >= 0 else "снижение"
-
-
-def _feature_reason(feature: str, z: float) -> Tuple[str, str]:
-    source = ""
-    base = feature
-    if base.startswith("siem_"):
-        source = "SIEM"
-        base = base[len("siem_"):]
-    elif base.startswith("pan_"):
-        source = "PAN"
-        base = base[len("pan_"):]
-
-    reason, rec = FEATURE_HINTS.get(
-        base,
-        (
-            f"аномальное отклонение по признаку {base}",
-            f"Проверить контекст событий по признаку {base} в исходных данных.",
-        ),
-    )
-
-    source_label = f"{source}: " if source else ""
-    return f"{source_label}{reason} ({_direction_label(z)})", rec
-
-
-def _build_soc_recommendations(report: pd.DataFrame, top_k: int) -> pd.DataFrame:
-    """Готовит краткие причины и рекомендации для SOC-аналитика."""
-    rows: list[dict[str, object]] = []
-    for _, row in report.iterrows():
-        reasons: list[str] = []
-        recs: list[str] = []
-        for i in range(1, top_k + 1):
-            feat_col = f"contrib{i}_feature"
-            z_col = f"contrib{i}_z"
-            if feat_col not in report.columns:
-                break
-            feat = row.get(feat_col)
-            if feat is None or pd.isna(feat):
-                continue
-            z = row.get(z_col, 0.0)
-            try:
-                z = float(z)
-            except (TypeError, ValueError):
-                z = 0.0
-            reason, rec = _feature_reason(str(feat), z)
-            reasons.append(reason)
-            recs.append(rec)
-
-        reasons = list(dict.fromkeys(reasons))
-        recs = list(dict.fromkeys(recs))
-
-        rows.append(
-            {
-                "entity_type": row.get("entity_type"),
-                "entity": row.get("entity"),
-                "date": row.get("date"),
-                "severity": row.get("severity"),
-                "top_contributors": row.get("top_contributors"),
-                "reason_hint": "; ".join(reasons),
-                "soc_recommendation": "; ".join(recs),
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def _write_soc_markdown(df: pd.DataFrame, path: Path, target_date: str) -> None:
-    """Записывает рекомендации в markdown-формате."""
-    lines: list[str] = [f"# SOC рекомендации по аномалиям на {target_date}", ""]
-    for _, row in df.iterrows():
-        lines.append(f"## {row.get('entity_type')} — {row.get('entity')}")
-        lines.append(f"- Дата: {row.get('date')}")
-        lines.append(f"- Уровень: {row.get('severity')}")
-        lines.append(f"- Причины: {row.get('reason_hint')}")
-        lines.append(f"- Рекомендации: {row.get('soc_recommendation')}")
-        lines.append("")
-    path.write_text("\n".join(lines), encoding="utf-8")
-
 
 def _explain_one_kind(
     work_dir: Path,
+    anomaly_dir: Path,
     kind: str,
     target_date: str,
     top_k: int,
@@ -262,7 +139,7 @@ def _explain_one_kind(
         raise ValueError("kind must be 'users' or 'hosts'")
 
     feats_file = work_dir / f"features_{kind}_clean.csv"
-    anom_file = work_dir / f"anomalies_{kind}_{target_date}.csv"
+    anom_file = anomaly_dir / f"anomalies_{kind}_{target_date}.csv"
 
     if not feats_file.exists():
         raise FileNotFoundError(f"Missing features file: {feats_file}")
@@ -381,7 +258,7 @@ def _explain_one_kind(
             cols.append(c)
     report = report[cols].sort_values(["severity", "rank_combined"], ascending=[True, True], kind="mergesort")
 
-    out_file: Path = work_dir / f"anomalies_{kind}_{target_date}_explain.csv"
+    out_file: Path = anomaly_dir / f"anomalies_{kind}_{target_date}_explain.csv"
     report.to_csv(out_file, index=False)
     print(f"[+] Wrote: {out_file} (rows={len(report)})")
     return report
@@ -390,6 +267,7 @@ def _explain_one_kind(
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--work", required=True, help="Work directory")
+    p.add_argument("--anomaly-dir", default="anomaly", help="Folder with anomaly CSVs (default: anomaly)")
     p.add_argument("--date", default=None, help="Target date YYYY-MM-DD (default: latest anomalies_* date)")
     p.add_argument("--top-features", type=int, default=5, help="How many top deviating features to include (3-5 typical)")
     args = p.parse_args()
@@ -398,29 +276,26 @@ def main() -> int:
     if not work_dir.exists():
         raise FileNotFoundError(f"Work dir not found: {work_dir}")
 
-    target_date: str = args.date or _pick_date_from_workdir(work_dir)
+    anomaly_dir: Path = Path(args.anomaly_dir)
+    if not anomaly_dir.is_absolute():
+        anomaly_dir = work_dir / anomaly_dir
+    if not anomaly_dir.exists():
+        raise FileNotFoundError(f"Anomaly dir not found: {anomaly_dir}")
+
+    target_date: str = args.date or _pick_date_from_anomaly_dir(anomaly_dir)
     target_date = str(pd.to_datetime(target_date, errors="raise").date())
 
     k: int = int(args.top_features)
     if k < 1 or k > 10:
         raise ValueError("--top-features must be between 1 and 10")
 
-    users: pd.DataFrame = _explain_one_kind(work_dir, "users", target_date, k)
-    hosts: pd.DataFrame = _explain_one_kind(work_dir, "hosts", target_date, k)
+    users: pd.DataFrame = _explain_one_kind(work_dir, anomaly_dir, "users", target_date, k)
+    hosts: pd.DataFrame = _explain_one_kind(work_dir, anomaly_dir, "hosts", target_date, k)
 
     all_df: pd.DataFrame = pd.concat([users, hosts], ignore_index=True)
-    out_all: Path = work_dir / f"anomalies_all_{target_date}_explain.csv"
+    out_all: Path = anomaly_dir / f"anomalies_all_{target_date}_explain.csv"
     all_df.to_csv(out_all, index=False)
     print(f"[+] Wrote: {out_all} (rows={len(all_df)})")
-
-    soc_df: pd.DataFrame = _build_soc_recommendations(all_df, k)
-    out_soc = work_dir / f"soc_recommendations_{target_date}.csv"
-    soc_df.to_csv(out_soc, index=False)
-    print(f"[+] Wrote: {out_soc} (rows={len(soc_df)})")
-
-    out_soc_md = work_dir / f"soc_recommendations_{target_date}.md"
-    _write_soc_markdown(soc_df, out_soc_md, target_date)
-    print(f"[+] Wrote: {out_soc_md}")
     print("[*] Done.")
     return 0
 

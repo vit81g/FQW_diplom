@@ -9,7 +9,8 @@
 
 ## Входные данные
 - `features_users_clean.csv`, `features_hosts_clean.csv`.
-- Аргументы: `--work`, `--date`, `--top-pct`.
+- Аргументы: `--work`, `--date`, `--top-pct`, `--report-dir`.
 
 ## Выходные данные
-- Папки `work/reports/day_<date>/`, `work/reports/week_<date>/`, `work/reports/month_<date>/`.
+- Папки `report/day_<date>/`, `report/week_<date>/`, `report/month_<date>/`
+  (по умолчанию внутри `--work`).

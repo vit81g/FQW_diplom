@@ -23,7 +23,9 @@
 /script/                   — скрипты обработки данных и анализа
 /script/readme.md           — подробная документация по каждому скрипту
 /script/data/               — входные выгрузки SIEM (TSV/TXT)
-/script/work/               — рабочие результаты и отчёты
+/script/work/               — рабочие результаты и промежуточные данные
+/script/work/report/        — итоговые отчёты и графики
+/script/work/anomaly/       — результаты анализа аномалий
 /screens/                  — скриншоты и иллюстрации к отчётам
 ```
 
@@ -34,6 +36,7 @@
 4. **Обучение и скоринг** (`train_anomaly_models.py`) → топ аномалий по дате.
 5. **Объяснение аномалий** (`explain_anomalies.py`) → топ признаков отклонения.
 6. **Визуализация** (`visualize_reports.py` / `auto_generate_reports.py`) → графики.
+7. **SOC-отчёт** (`soc_report.py`) → Markdown-отчёт с контекстом.
 
 ## Быстрый старт (пример)
 ```bash
@@ -44,6 +47,7 @@ python preprocess_features.py --work ./work
 python train_anomaly_models.py --work ./work
 python explain_anomalies.py --work ./work
 python visualize_reports.py --work ./work --scope day --top-pct 0.05
+python soc_report.py --work ./work --scope day
 ```
 
 ## Зависимости
